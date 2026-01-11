@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, X, MapPin } from 'lucide-react';
+import { Menu, X, MapPin, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/theme-provider';
 
 const navLinks = [
   { name: 'Home', path: '/' },
@@ -14,6 +15,11 @@ const navLinks = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { theme, setTheme } = useTheme();
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full glass border-b">
@@ -46,6 +52,35 @@ export function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-4">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg hover:bg-accent transition-colors"
+            aria-label="Toggle theme"
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {theme === 'dark' ? (
+                <motion.div
+                  key="sun"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Sun className="h-5 w-5 text-foreground" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="moon"
+                  initial={{ rotate: 90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Moon className="h-5 w-5 text-foreground" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
           <Link to="/map">
             <Button className="gradient-teal shadow-teal">
               <MapPin className="h-4 w-4 mr-2" />
@@ -89,6 +124,20 @@ export function Navbar() {
                   {link.name}
                 </Link>
               ))}
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <span className="text-sm text-muted-foreground">Theme</span>
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 rounded-lg hover:bg-accent transition-colors"
+                  aria-label="Toggle theme"
+                >
+                  {theme === 'dark' ? (
+                    <Sun className="h-5 w-5 text-foreground" />
+                  ) : (
+                    <Moon className="h-5 w-5 text-foreground" />
+                  )}
+                </button>
+              </div>
               <Link to="/map" onClick={() => setIsOpen(false)}>
                 <Button className="w-full gradient-teal shadow-teal mt-2">
                   <MapPin className="h-4 w-4 mr-2" />
