@@ -12,6 +12,8 @@ import MapPage from "./pages/MapPage";
 import Auth from "./pages/Auth";
 import MosqueDetail from "./pages/MosqueDetail";
 import NotFound from "./pages/NotFound";
+import { AdminRoute, AdminLayout } from "@/components/admin";
+import { AdminDashboard, MosquesList, MosqueForm, ClaimsList, UsersList, EventsList } from "@/pages/admin";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +32,18 @@ const App = () => (
               <Route path="/map" element={<MapPage />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/mosque/:slug" element={<MosqueDetail />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="mosques" element={<MosquesList />} />
+                <Route path="mosques/new" element={<MosqueForm />} />
+                <Route path="mosques/:id/edit" element={<MosqueForm />} />
+                <Route path="claims" element={<ClaimsList />} />
+                <Route path="users" element={<UsersList />} />
+                <Route path="events" element={<EventsList />} />
+              </Route>
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
