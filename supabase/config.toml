@@ -1,1 +1,4 @@
 project_id = "jiwhlklaicnzyifdwbah"
+
+[functions.import-mosques]
+verify_jwt = false

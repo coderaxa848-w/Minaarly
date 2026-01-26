@@ -13,7 +13,7 @@ import Auth from "./pages/Auth";
 import MosqueDetail from "./pages/MosqueDetail";
 import NotFound from "./pages/NotFound";
 import { AdminRoute, AdminLayout } from "@/components/admin";
-import { AdminDashboard, MosquesList, MosqueForm, ClaimsList, UsersList, EventsList } from "@/pages/admin";
+import { AdminDashboard, MosquesList, MosqueForm, ClaimsList, UsersList, EventsList, ImportMosques } from "@/pages/admin";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +42,7 @@ const App = () => (
                 <Route path="claims" element={<ClaimsList />} />
                 <Route path="users" element={<UsersList />} />
                 <Route path="events" element={<EventsList />} />
+                <Route path="import" element={<ImportMosques />} />
               </Route>
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
