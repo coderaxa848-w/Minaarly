@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, ClipboardList, Users, Calendar, TrendingUp, AlertCircle } from 'lucide-react';
+import { Building2, ClipboardList, Users, Calendar, TrendingUp, Upload } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -275,6 +275,12 @@ export default function AdminDashboard() {
               <Button variant="outline" className="w-full justify-start">
                 <TrendingUp className="h-4 w-4 mr-2" />
                 View Public Map
+              </Button>
+            </Link>
+            <Link to="/admin/import" className="block">
+              <Button variant="outline" className="w-full justify-start">
+                <Upload className="h-4 w-4 mr-2" />
+                Import Mosques (CSV)
               </Button>
             </Link>
           </CardContent>
