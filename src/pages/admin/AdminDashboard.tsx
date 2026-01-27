@@ -1,7 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, ClipboardList, Users, Calendar, TrendingUp, Upload } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion } from 'framer-motion';
+import { 
+  Building2, 
+  ClipboardList, 
+  Users, 
+  Calendar, 
+  TrendingUp, 
+  Upload,
+  ArrowRight,
+  ArrowUpRight,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  Activity,
+  MapPin,
+  BarChart3,
+  Zap
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -122,7 +139,12 @@ export default function AdminDashboard() {
       description: `${stats.verifiedMosques} verified`,
       icon: Building2,
       href: '/admin/mosques',
-      color: 'text-primary',
+      gradient: 'from-emerald-500 to-teal-600',
+      bgGradient: 'from-emerald-500/10 to-teal-500/5',
+      iconBg: 'bg-emerald-500/10',
+      iconColor: 'text-emerald-500',
+      trend: '+12%',
+      trendUp: true,
     },
     {
       title: 'Pending Claims',
@@ -130,8 +152,12 @@ export default function AdminDashboard() {
       description: 'Awaiting review',
       icon: ClipboardList,
       href: '/admin/claims',
-      color: 'text-amber-500',
+      gradient: 'from-amber-500 to-orange-600',
+      bgGradient: 'from-amber-500/10 to-orange-500/5',
+      iconBg: 'bg-amber-500/10',
+      iconColor: 'text-amber-500',
       badge: stats.pendingClaims > 0,
+      urgent: stats.pendingClaims > 0,
     },
     {
       title: 'Registered Users',
@@ -139,7 +165,12 @@ export default function AdminDashboard() {
       description: 'Total accounts',
       icon: Users,
       href: '/admin/users',
-      color: 'text-blue-500',
+      gradient: 'from-blue-500 to-cyan-600',
+      bgGradient: 'from-blue-500/10 to-cyan-500/5',
+      iconBg: 'bg-blue-500/10',
+      iconColor: 'text-blue-500',
+      trend: '+8%',
+      trendUp: true,
     },
     {
       title: 'Events',
@@ -147,19 +178,77 @@ export default function AdminDashboard() {
       description: `${stats.upcomingEvents} upcoming`,
       icon: Calendar,
       href: '/admin/events',
-      color: 'text-green-500',
+      gradient: 'from-violet-500 to-purple-600',
+      bgGradient: 'from-violet-500/10 to-purple-500/5',
+      iconBg: 'bg-violet-500/10',
+      iconColor: 'text-violet-500',
+      trend: '+5%',
+      trendUp: true,
     },
   ];
 
+  const quickActions = [
+    { 
+      title: 'Add New Mosque', 
+      description: 'Register a new mosque location',
+      icon: Building2, 
+      href: '/admin/mosques/new',
+      gradient: 'from-emerald-500 to-teal-600',
+    },
+    { 
+      title: 'Review Claims', 
+      description: 'Process pending requests',
+      icon: ClipboardList, 
+      href: '/admin/claims',
+      gradient: 'from-amber-500 to-orange-600',
+      badge: stats.pendingClaims,
+    },
+    { 
+      title: 'Manage Users', 
+      description: 'View and edit user accounts',
+      icon: Users, 
+      href: '/admin/users',
+      gradient: 'from-blue-500 to-cyan-600',
+    },
+    { 
+      title: 'Import Mosques', 
+      description: 'Bulk import from CSV file',
+      icon: Upload, 
+      href: '/admin/import',
+      gradient: 'from-slate-500 to-slate-600',
+    },
+  ];
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffDays > 0) return `${diffDays}d ago`;
+    if (diffHours > 0) return `${diffHours}h ago`;
+    return 'Just now';
+  };
+
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 w-48 bg-muted rounded" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 bg-muted rounded-lg" />
-            ))}
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse space-y-8">
+            <div className="space-y-2">
+              <div className="h-10 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              <div className="h-5 w-96 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+              <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+            </div>
           </div>
         </div>
       </div>
@@ -167,124 +256,299 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to the Minaarly admin panel</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 -left-20 w-60 h-60 bg-violet-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/3 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat) => (
-          <Link key={stat.title} to={stat.href}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <div className="text-2xl font-bold">{stat.value.toLocaleString()}</div>
-                  {stat.badge && (
-                    <Badge variant="destructive" className="h-5">
-                      Action needed
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      {/* Recent Claims */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Pending Claims</CardTitle>
-                <CardDescription>Recent mosque claim requests</CardDescription>
+      <div className="relative max-w-7xl mx-auto p-6 lg:p-8 space-y-8">
+        {/* Header */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4"
+        >
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <span className="text-xs font-semibold text-primary">Admin Dashboard</span>
               </div>
-              <Link to="/admin/claims">
-                <Button variant="outline" size="sm">View All</Button>
-              </Link>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <Activity className="h-3.5 w-3.5 text-emerald-500" />
+                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Live</span>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {recentClaims.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                <p>No pending claims</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {recentClaims.map((claim) => (
-                  <div key={claim.id} className="flex items-center justify-between border-b pb-3 last:border-0">
-                    <div>
-                      <p className="font-medium text-sm">{claim.mosque_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {claim.claimant_name} • {claim.claimant_role}
-                      </p>
+            <h1 className="text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
+              Welcome back! 👋
+            </h1>
+            <p className="text-muted-foreground mt-1 text-lg">
+              Here's what's happening with Minaarly today.
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <Link to="/map">
+              <Button variant="outline" className="gap-2 rounded-xl h-11 px-5 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800">
+                <MapPin className="h-4 w-4" />
+                View Map
+              </Button>
+            </Link>
+            <Link to="/admin/mosques/new">
+              <Button className="gap-2 rounded-xl h-11 px-5 bg-gradient-to-r from-primary to-emerald-600 hover:opacity-90 shadow-lg shadow-primary/25">
+                <Building2 className="h-4 w-4" />
+                Add Mosque
+              </Button>
+            </Link>
+          </div>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {statCards.map((stat, index) => (
+            <motion.div
+              key={stat.title}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Link to={stat.href} className="block group">
+                <div className={`relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 p-6 hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-slate-900/50 transition-all duration-300 hover:-translate-y-1`}>
+                  {/* Background gradient */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-50`} />
+                  
+                  {/* Decorative corner */}
+                  <div className={`absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
+                  
+                  <div className="relative">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`p-3 rounded-xl ${stat.iconBg}`}>
+                        <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
+                      </div>
+                      {stat.urgent && (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20">
+                          <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+                          <span className="text-xs font-semibold text-red-600 dark:text-red-400">Action needed</span>
+                        </div>
+                      )}
+                      {stat.trend && !stat.urgent && (
+                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                          <TrendingUp className="h-4 w-4" />
+                          <span className="text-sm font-semibold">{stat.trend}</span>
+                        </div>
+                      )}
                     </div>
-                    <Badge variant="outline" className="text-amber-600 border-amber-300">
-                      Pending
-                    </Badge>
+                    
+                    <div className="space-y-1">
+                      <div className="text-4xl font-bold text-foreground tracking-tight">
+                        {stat.value.toLocaleString()}
+                      </div>
+                      <div className="text-sm font-medium text-muted-foreground">{stat.title}</div>
+                      <div className="flex items-center gap-2 pt-2">
+                        <span className="text-xs text-muted-foreground">{stat.description}</span>
+                        <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
                   </div>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Pending Claims - Takes 2 columns */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="lg:col-span-2"
+          >
+            <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-amber-500/10">
+                      <ClipboardList className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-foreground">Pending Claims</h2>
+                      <p className="text-sm text-muted-foreground">Recent mosque claim requests</p>
+                    </div>
+                  </div>
+                  <Link to="/admin/claims">
+                    <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
+                      View All
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {recentClaims.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center">
+                      <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-1">All caught up!</h3>
+                    <p className="text-muted-foreground">No pending claims to review</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentClaims.map((claim, index) => (
+                      <motion.div 
+                        key={claim.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 + index * 0.1 }}
+                        className="group flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-semibold text-sm">
+                            {claim.mosque_name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground">{claim.mosque_name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {claim.claimant_name} • {claim.claimant_role}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span className="text-xs">{formatTimeAgo(claim.created_at)}</span>
+                          </div>
+                          <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20">
+                            Pending
+                          </Badge>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Quick Actions */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden h-full">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-violet-500/10">
+                    <Zap className="h-5 w-5 text-violet-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">Quick Actions</h2>
+                    <p className="text-sm text-muted-foreground">Common tasks</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 space-y-2">
+                {quickActions.map((action, index) => (
+                  <motion.div
+                    key={action.title}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 + index * 0.1 }}
+                  >
+                    <Link to={action.href}>
+                      <div className="group flex items-center gap-4 p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-lg`}>
+                          <action.icon className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-foreground">{action.title}</p>
+                            {action.badge && action.badge > 0 && (
+                              <Badge variant="destructive" className="h-5 px-1.5 text-xs">
+                                {action.badge}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{action.description}</p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </Link>
+                  </motion.div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+              
+              {/* View Map CTA */}
+              <div className="p-4 pt-0">
+                <Link to="/map" className="block">
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary to-emerald-600 p-4 group">
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxjaXJjbGUgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjEiIGN4PSIyMCIgY3k9IjIwIiByPSIxIi8+PC9nPjwvc3ZnPg==')] opacity-30" />
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                          <MapPin className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">View Public Map</p>
+                          <p className="text-sm text-white/70">See all mosques</p>
+                        </div>
+                      </div>
+                      <ArrowUpRight className="h-5 w-5 text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        </div>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common administrative tasks</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Link to="/admin/mosques/new" className="block">
-              <Button variant="outline" className="w-full justify-start">
-                <Building2 className="h-4 w-4 mr-2" />
-                Add New Mosque
-              </Button>
-            </Link>
-            <Link to="/admin/claims" className="block">
-              <Button variant="outline" className="w-full justify-start">
-                <ClipboardList className="h-4 w-4 mr-2" />
-                Review Claims
-                {stats.pendingClaims > 0 && (
-                  <Badge variant="destructive" className="ml-auto">
-                    {stats.pendingClaims}
-                  </Badge>
-                )}
-              </Button>
-            </Link>
-            <Link to="/admin/users" className="block">
-              <Button variant="outline" className="w-full justify-start">
-                <Users className="h-4 w-4 mr-2" />
-                Manage Users
-              </Button>
-            </Link>
-            <Link to="/map" className="block">
-              <Button variant="outline" className="w-full justify-start">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                View Public Map
-              </Button>
-            </Link>
-            <Link to="/admin/import" className="block">
-              <Button variant="outline" className="w-full justify-start">
-                <Upload className="h-4 w-4 mr-2" />
-                Import Mosques (CSV)
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        {/* Activity Overview */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 p-6"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-blue-500/10">
+                <BarChart3 className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Platform Overview</h2>
+                <p className="text-sm text-muted-foreground">Key metrics at a glance</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/30">
+              <div className="text-3xl font-bold text-foreground mb-1">{stats.verifiedMosques}</div>
+              <div className="text-sm text-muted-foreground">Verified Mosques</div>
+            </div>
+            <div className="text-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/30">
+              <div className="text-3xl font-bold text-foreground mb-1">{stats.upcomingEvents}</div>
+              <div className="text-sm text-muted-foreground">Upcoming Events</div>
+            </div>
+            <div className="text-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/30">
+              <div className="text-3xl font-bold text-foreground mb-1">{stats.totalUsers}</div>
+              <div className="text-sm text-muted-foreground">Active Users</div>
+            </div>
+            <div className="text-center p-4 rounded-xl bg-slate-50 dark:bg-slate-700/30">
+              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mb-1">99.9%</div>
+              <div className="text-sm text-muted-foreground">Uptime</div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

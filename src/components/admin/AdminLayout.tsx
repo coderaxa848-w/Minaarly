@@ -5,6 +5,7 @@ import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 
 export function AdminLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -12,7 +13,7 @@ export function AdminLayout() {
   const isMobile = useIsMobile();
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
+    <div className="min-h-screen flex w-full bg-slate-50 dark:bg-slate-900">
       {/* Desktop Sidebar */}
       {!isMobile && (
         <AdminSidebar 
@@ -28,12 +29,12 @@ export function AdminLayout() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="fixed top-4 left-4 z-50 md:hidden"
+              className="fixed top-4 left-4 z-50 md:hidden bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700"
             >
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-64">
+          <SheetContent side="left" className="p-0 w-72 border-0">
             <AdminSidebar />
           </SheetContent>
         </Sheet>
@@ -48,6 +49,3 @@ export function AdminLayout() {
     </div>
   );
 }
-
-// Need to import cn
-import { cn } from '@/lib/utils';
