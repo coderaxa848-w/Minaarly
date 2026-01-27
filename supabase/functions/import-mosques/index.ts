@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { csvText, dryRun = false } = await req.json();
+    const { csvText, dryRun = false, startLine = 0, maxLines = 0 } = await req.json();
 
     if (!csvText || typeof csvText !== 'string') {
       return new Response(
@@ -157,17 +157,23 @@ Deno.serve(async (req) => {
     }
 
     // Split into lines, skip header if present
-    const lines = csvText.split('\n').filter((line: string) => line.trim().length > 0);
+    const allLines = csvText.split('\n').filter((line: string) => line.trim().length > 0);
     
     // Skip first line if it looks like a header
-    const startIndex = lines[0]?.includes('longitude') || lines[0]?.includes('Longitude') ? 1 : 0;
+    const headerOffset = allLines[0]?.includes('longitude') || allLines[0]?.includes('Longitude') ? 1 : 0;
+    
+    // Apply startLine and maxLines for partial imports
+    const startIndex = headerOffset + startLine;
+    const endIndex = maxLines > 0 ? Math.min(startIndex + maxLines, allLines.length) : allLines.length;
+    const lines = allLines.slice(startIndex, endIndex);
 
     const parsed: ParsedMosque[] = [];
     const errors: ParseError[] = [];
 
     // Parse all lines
-    for (let i = startIndex; i < lines.length; i++) {
-      const result = parseCsvLine(lines[i], i + 1);
+    for (let i = 0; i < lines.length; i++) {
+      const actualLineNumber = startIndex + i + 1; // +1 for 1-based line numbers
+      const result = parseCsvLine(lines[i], actualLineNumber);
       if (isParseError(result)) {
         errors.push(result);
       } else {
@@ -181,9 +187,11 @@ Deno.serve(async (req) => {
         JSON.stringify({
           success: true,
           dryRun: true,
-          totalLines: lines.length - startIndex,
+          totalLines: lines.length,
           parsedCount: parsed.length,
           errorCount: errors.length,
+          startLine,
+          maxLines,
           preview: parsed.slice(0, 10),
           errors: errors.slice(0, 20),
         }),
