@@ -219,6 +219,73 @@ await supabase.auth.signOut();
 | `has_role(user_id, role)` | Checks user role (`admin`, `mosque_admin`, `user`) |
 | `is_mosque_admin(user_id, mosque_id)` | Checks if user manages a mosque |
 | `get_event_interested_count(event_id)` | Returns RSVP count |
+| `get_mosques_in_bounds(...)` | **NEW** Viewport-based loading for maps |
+| `get_nearby_mosques(...)` | **NEW** Near Me with distance calculation |
+| `search_mosques(...)` | **NEW** Search by name, city, postcode |
+
+---
+
+## 🚀 Performance Optimization Functions (NEW)
+
+These functions are critical for mobile performance. **Do NOT load all mosques at once.**
+
+### 1. Viewport-Based Loading (for map panning)
+```typescript
+const { data } = await supabase.rpc('get_mosques_in_bounds', {
+  min_lat: 51.4,
+  max_lat: 51.6,
+  min_lng: -0.3,
+  max_lng: 0.1,
+  filter_madhab: null,  // optional: 'Deobandi', 'Barelvi', etc.
+  limit_count: 100
+});
+```
+
+### 2. Near Me (with distance in miles)
+```typescript
+const { data } = await supabase.rpc('get_nearby_mosques', {
+  user_lat: 51.5074,
+  user_lng: -0.1278,
+  radius_miles: 5,
+  limit_count: 50
+});
+// Returns: { ...mosque, distance_miles: 0.34 }
+```
+
+### 3. Search
+```typescript
+const { data } = await supabase.rpc('search_mosques', {
+  search_term: 'London',
+  limit_count: 20
+});
+```
+
+### Performance Architecture
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        APP STARTUP                          │
+├─────────────────────────────────────────────────────────────┤
+│  1. Get user location                                       │
+│  2. Call get_nearby_mosques(lat, lng, 5, 50)               │
+│  3. Show map with clustered markers (~30-50 mosques)       │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     USER PANS MAP                           │
+├─────────────────────────────────────────────────────────────┤
+│  1. Debounce (wait 300ms)                                   │
+│  2. Get map bounds (min/max lat/lng)                        │
+│  3. Call get_mosques_in_bounds(bounds)                     │
+│  4. Merge with existing (dedupe by id)                      │
+│  5. Update clustered markers                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Caching Strategy
+- Cache by region key: `${Math.floor(lat*10)}_${Math.floor(lng*10)}`
+- TTL: 5 minutes for nearby, 15 minutes for bounds queries
+- Use React Query or similar for automatic caching
 
 ---
 

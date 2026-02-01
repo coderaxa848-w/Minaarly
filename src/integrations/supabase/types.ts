@@ -343,6 +343,65 @@ export type Database = {
         Args: { _event_id: string }
         Returns: number
       }
+      get_mosques_in_bounds: {
+        Args: {
+          filter_madhab?: string
+          limit_count?: number
+          max_lat: number
+          max_lng: number
+          min_lat: number
+          min_lng: number
+        }
+        Returns: {
+          address: string
+          background_image_url: string | null
+          city: string
+          county: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          facilities: string[] | null
+          id: string
+          is_verified: boolean | null
+          languages: string[] | null
+          latitude: number | null
+          longitude: number | null
+          madhab: string | null
+          name: string
+          phone: string | null
+          postcode: string
+          slug: string
+          updated_at: string | null
+          website: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mosques"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_nearby_mosques: {
+        Args: {
+          limit_count?: number
+          radius_miles?: number
+          user_lat: number
+          user_lng: number
+        }
+        Returns: {
+          address: string
+          city: string
+          distance_miles: number
+          facilities: string[]
+          id: string
+          latitude: number
+          longitude: number
+          madhab: string
+          name: string
+          postcode: string
+          slug: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -353,6 +412,37 @@ export type Database = {
       is_mosque_admin: {
         Args: { _mosque_id: string; _user_id: string }
         Returns: boolean
+      }
+      search_mosques: {
+        Args: { limit_count?: number; search_term: string }
+        Returns: {
+          address: string
+          background_image_url: string | null
+          city: string
+          county: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          facilities: string[] | null
+          id: string
+          is_verified: boolean | null
+          languages: string[] | null
+          latitude: number | null
+          longitude: number | null
+          madhab: string | null
+          name: string
+          phone: string | null
+          postcode: string
+          slug: string
+          updated_at: string | null
+          website: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "mosques"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
     }
     Enums: {
