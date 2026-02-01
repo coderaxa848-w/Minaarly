@@ -89,7 +89,7 @@ export function MosqueSlidePanel({ mosque, onClose }: MosqueSlidePanelProps) {
             )}
 
             {/* View Full Details */}
-            <Link to={`/mosque/${mosque.id}`}>
+            <Link to={`/mosque/${mosque.slug}`}>
               <Button className="w-full gradient-teal">
                 View Full Details <ChevronRight className="h-4 w-4 ml-2" />
               </Button>

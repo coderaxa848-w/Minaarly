@@ -83,7 +83,15 @@ function MapBoundsHandler({ onBoundsChange }: { onBoundsChange: (bounds: L.LatLn
 
 function SetViewOnLoad({ center }: { center: [number, number] }) {
   const map = useMap();
-  useEffect(() => { map.setView(center, 11); }, [center, map]);
+  const hasSetInitialView = useRef(false);
+  
+  useEffect(() => {
+    if (!hasSetInitialView.current) {
+      map.setView(center, 11);
+      hasSetInitialView.current = true;
+    }
+  }, [center, map]);
+  
   return null;
 }
 
