@@ -3,6 +3,7 @@
 export interface Mosque {
   id: string;
   name: string;
+  slug: string;
   address: string;
   city: string;
   state: string;

@@ -5,6 +5,7 @@ export const mockMosques: Mosque[] = [
   {
     id: '1',
     name: 'Islamic Center of Irving',
+    slug: 'islamic-center-of-irving',
     address: '2555 Esters Rd',
     city: 'Irving',
     state: 'TX',
@@ -23,6 +24,7 @@ export const mockMosques: Mosque[] = [
   {
     id: '2',
     name: 'East Plano Islamic Center',
+    slug: 'east-plano-islamic-center',
     address: '901 Shiloh Rd',
     city: 'Plano',
     state: 'TX',
@@ -41,6 +43,7 @@ export const mockMosques: Mosque[] = [
   {
     id: '3',
     name: 'Dallas Central Mosque',
+    slug: 'dallas-central-mosque',
     address: '840 Abrams Rd',
     city: 'Richardson',
     state: 'TX',
@@ -58,6 +61,7 @@ export const mockMosques: Mosque[] = [
   {
     id: '4',
     name: 'Masjid Al-Islam',
+    slug: 'masjid-al-islam',
     address: '2604 S Harwood St',
     city: 'Dallas',
     state: 'TX',
@@ -73,6 +77,7 @@ export const mockMosques: Mosque[] = [
   {
     id: '5',
     name: 'Islamic Association of Carrollton',
+    slug: 'islamic-association-of-carrollton',
     address: '1820 Hebron Pkwy',
     city: 'Carrollton',
     state: 'TX',
@@ -89,6 +94,7 @@ export const mockMosques: Mosque[] = [
   {
     id: '6',
     name: 'Masjid Al-Hedaya',
+    slug: 'masjid-al-hedaya',
     address: '1625 E Berry St',
     city: 'Fort Worth',
     state: 'TX',
