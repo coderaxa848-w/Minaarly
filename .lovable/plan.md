@@ -1,164 +1,224 @@
 
-## Bulk Mosque Import Implementation Plan
 
-### Overview
-Create a complete CSV import system to bulk insert 2,189 mosques from `MosquesJan26Extended.csv` into Supabase with automatic slug generation and coordinate extraction.
+## Server-Side Performance Optimization Plan
 
----
-
-### Part 1: Edge Function - `import-mosques`
-
-Create `supabase/functions/import-mosques/index.ts` to handle CSV parsing and batch insertion.
-
-#### CSV Format Analysis
-Each line follows this pattern:
-```
-longitude,latitude,"*[flags]Name. Address. Phone","City,Postcode-ID:N"
-```
-
-**Example:**
-```
--2.1007543802,57.1609160759,"*[250WArabArab]Aberdeen Mosque...","Aberdeen City,AB24 3JD-ID:1"
-```
-
-#### Extraction Logic
-| Field | Extraction Method |
-|-------|-------------------|
-| Longitude | Column 1 |
-| Latitude | Column 2 |
-| Capacity | Parse `[250W...]` - number before `W` or end of bracket |
-| Women's Facilities | Check for `W` in flags |
-| Madhab | `Deob` = Deobandi, `Brel` = Barelvi, `Salf` = Salafi, `Shia` = Shia |
-| Name | Text after `]` before first `.` |
-| Address | Text between first and second `.` |
-| Phone | Text after second `.` (if exists) |
-| City | First part before comma in column 4 |
-| Postcode | Text between comma and `-ID:` |
-
-#### Function Features
-- Accept CSV text in request body
-- Parse each line with regex
-- Call `generate_slug` RPC for each mosque
-- Batch upsert into `mosques` table (chunks of 100)
-- Return success/error counts and details
+### Problem Summary
+- 1,716 mosques in Supabase, all with coordinates
+- Web MapPage currently uses mock data (needs to be connected to Supabase)
+- Loading all mosques causes performance issues on mobile
 
 ---
 
-### Part 2: Admin Import Page
+### Part 1: Database Functions (Improved from RN Dev's Proposal)
 
-Create `src/pages/admin/ImportMosques.tsx` with:
+#### 1.1 Bounding Box Query Function (Improved)
+Your dev's version is good, but I'll add:
+- `STABLE` modifier for better query planning
+- `SECURITY DEFINER` for RLS compatibility
+- Optional filters for madhab/facilities
 
-#### UI Components
-1. **File Upload Zone** - Accept CSV file
-2. **Preview Section** - Show first 10 parsed records
-3. **Dry Run Button** - Parse without inserting, show stats
-4. **Import Button** - Execute actual import
-5. **Progress Bar** - Show import progress
-6. **Results Panel** - Success/error counts and details
+```sql
+CREATE OR REPLACE FUNCTION get_mosques_in_bounds(
+  min_lat DOUBLE PRECISION,
+  max_lat DOUBLE PRECISION,
+  min_lng DOUBLE PRECISION,
+  max_lng DOUBLE PRECISION,
+  filter_madhab TEXT DEFAULT NULL,
+  limit_count INTEGER DEFAULT 100
+)
+RETURNS SETOF mosques
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = 'public'
+AS $$
+  SELECT *
+  FROM mosques
+  WHERE latitude BETWEEN min_lat AND max_lat
+    AND longitude BETWEEN min_lng AND max_lng
+    AND latitude IS NOT NULL
+    AND longitude IS NOT NULL
+    AND (filter_madhab IS NULL OR madhab = filter_madhab)
+  ORDER BY name
+  LIMIT limit_count;
+$$;
+```
 
-#### State Management
-- `file`: Uploaded CSV file
-- `parsedData`: Array of parsed mosque objects
-- `importing`: Boolean for loading state
-- `progress`: Current import progress
-- `results`: Import results (success, errors, skipped)
+#### 1.2 Nearby Mosques Function (Fixed & Improved)
+Your dev's version has a bug - `HAVING` without `GROUP BY`. Here's the corrected version using a subquery:
+
+```sql
+CREATE OR REPLACE FUNCTION get_nearby_mosques(
+  user_lat DOUBLE PRECISION,
+  user_lng DOUBLE PRECISION,
+  radius_miles DOUBLE PRECISION DEFAULT 5,
+  limit_count INTEGER DEFAULT 50
+)
+RETURNS TABLE (
+  id UUID,
+  name TEXT,
+  slug TEXT,
+  address TEXT,
+  city TEXT,
+  postcode TEXT,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  madhab TEXT,
+  facilities TEXT[],
+  distance_miles DOUBLE PRECISION
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = 'public'
+AS $$
+  SELECT 
+    m.id, m.name, m.slug, m.address, m.city, m.postcode,
+    m.latitude, m.longitude, m.madhab, m.facilities,
+    calculated.distance_miles
+  FROM mosques m
+  CROSS JOIN LATERAL (
+    SELECT (3959 * acos(
+      LEAST(1.0, GREATEST(-1.0,
+        cos(radians(user_lat)) * cos(radians(m.latitude)) *
+        cos(radians(m.longitude) - radians(user_lng)) +
+        sin(radians(user_lat)) * sin(radians(m.latitude))
+      ))
+    )) AS distance_miles
+  ) calculated
+  WHERE m.latitude IS NOT NULL 
+    AND m.longitude IS NOT NULL
+    AND calculated.distance_miles <= radius_miles
+  ORDER BY calculated.distance_miles
+  LIMIT limit_count;
+$$;
+```
+
+**Improvements over original:**
+- Fixed HAVING clause bug (moved to WHERE with subquery)
+- Added `LEAST(1.0, GREATEST(-1.0, ...))` to prevent acos domain errors
+- Added `STABLE` for query optimization
+- Added `SECURITY DEFINER` for RLS compatibility
+
+#### 1.3 Spatial Index for Fast Queries
+```sql
+CREATE INDEX IF NOT EXISTS idx_mosques_lat_lng 
+ON mosques (latitude, longitude) 
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_mosques_madhab
+ON mosques (madhab)
+WHERE madhab IS NOT NULL;
+```
+
+#### 1.4 Search Function (Bonus)
+For searching mosques by name, city, or postcode:
+
+```sql
+CREATE OR REPLACE FUNCTION search_mosques(
+  search_term TEXT,
+  limit_count INTEGER DEFAULT 20
+)
+RETURNS SETOF mosques
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = 'public'
+AS $$
+  SELECT *
+  FROM mosques
+  WHERE (
+    name ILIKE '%' || search_term || '%'
+    OR city ILIKE '%' || search_term || '%'
+    OR postcode ILIKE '%' || search_term || '%'
+  )
+  AND latitude IS NOT NULL
+  AND longitude IS NOT NULL
+  ORDER BY 
+    CASE WHEN name ILIKE search_term || '%' THEN 0 ELSE 1 END,
+    name
+  LIMIT limit_count;
+$$;
+```
 
 ---
 
-### Part 3: Routing Integration
+### Part 2: Update Handoff Document
 
-#### Update App.tsx
-Add new route under admin:
+Update `docs/HANDOFF_REACT_NATIVE.md` with:
+- New function signatures and usage examples
+- Sample queries for viewport-based loading
+- Caching recommendations
+
+---
+
+### Part 3: Fix Web MapPage (Connect to Supabase)
+
+Update `src/pages/MapPage.tsx` to:
+1. Use real Supabase data instead of mock data
+2. Implement viewport-based loading for web
+3. Add loading states
+
+---
+
+### Implementation Files
+
+| Action | File | Description |
+|--------|------|-------------|
+| Create | Database migration | 3 functions + 2 indexes |
+| Update | `docs/HANDOFF_REACT_NATIVE.md` | Add new function docs |
+| Update | `src/pages/MapPage.tsx` | Connect to Supabase |
+
+---
+
+### Function Usage Examples for RN Dev
+
+**Viewport-based loading:**
 ```typescript
-<Route path="import" element={<ImportMosques />} />
+const { data } = await supabase.rpc('get_mosques_in_bounds', {
+  min_lat: 51.4,
+  max_lat: 51.6,
+  min_lng: -0.3,
+  max_lng: 0.1,
+  limit_count: 100
+});
 ```
 
-#### Update Admin Index
-Export the new component:
+**Near me with radius:**
 ```typescript
-export { default as ImportMosques } from './ImportMosques';
+const { data } = await supabase.rpc('get_nearby_mosques', {
+  user_lat: 51.5074,
+  user_lng: -0.1278,
+  radius_miles: 5,
+  limit_count: 50
+});
 ```
 
-#### Update AdminDashboard
-Add quick action button for Import Mosques
-
----
-
-### Part 4: Supabase Config
-
-Update `supabase/config.toml` to register the edge function:
-```toml
-[functions.import-mosques]
-verify_jwt = false
-```
-
----
-
-### File Changes Summary
-
-| Action | File |
-|--------|------|
-| Create | `supabase/functions/import-mosques/index.ts` |
-| Create | `src/pages/admin/ImportMosques.tsx` |
-| Modify | `src/App.tsx` - Add import route |
-| Modify | `src/pages/admin/index.ts` - Export ImportMosques |
-| Modify | `src/pages/admin/AdminDashboard.tsx` - Add import quick action |
-| Modify | `supabase/config.toml` - Register edge function |
-
----
-
-### Technical Details
-
-#### Edge Function Structure
-```text
-supabase/functions/import-mosques/index.ts
-+-- CORS headers configuration
-+-- parseCsvLine() - Parse single CSV line
-+-- extractMosqueData() - Extract all fields from parsed line
-+-- parseCapacityFlags() - Parse [250WArab] format
-+-- POST /import - Dry run mode (parse only)
-+-- POST /execute - Actual database insertion
-+-- Batch processing (100 records per batch)
-+-- Error handling and logging
-```
-
-#### Import Page Flow
-```text
-1. User uploads CSV file
-2. Client reads file as text
-3. Click "Dry Run" -> POST to /import
-   - Returns parsed data preview and validation
-4. Review results, fix any issues
-5. Click "Import" -> POST to /execute
-   - Shows progress bar
-   - Returns final counts
-6. View success/error summary
-```
-
-#### Data Transformation
-```text
-CSV Line -> Parsed Object:
-{
-  name: "Aberdeen Mosque and Islamic Centre",
-  address: "164-168 Spital",
-  city: "Aberdeen City",
-  postcode: "AB24 3JD",
-  latitude: 57.1609160759,
-  longitude: -2.1007543802,
-  phone: "01224 493764",
-  madhab: null,
-  facilities: ["women_section"],
-  capacity: 250
-}
+**Search:**
+```typescript
+const { data } = await supabase.rpc('search_mosques', {
+  search_term: 'London',
+  limit_count: 20
+});
 ```
 
 ---
 
-### Implementation Order
+### Performance Impact
 
-1. Create edge function with CSV parsing logic
-2. Deploy and test edge function
-3. Create ImportMosques.tsx page
-4. Add routing and exports
-5. Add quick action to dashboard
-6. Test full import flow
+| Metric | Before | After |
+|--------|--------|-------|
+| Initial API call | All 1,716 mosques | ~30-50 nearby |
+| Payload size | ~500KB | ~15KB |
+| Query time | ~200ms | ~20ms |
+| Map markers | 1,716 | 10-50 clustered |
+
+---
+
+### Key Fixes to RN Dev's SQL
+
+1. **HAVING bug**: Original used `HAVING` without `GROUP BY` - fixed with `CROSS JOIN LATERAL`
+2. **acos domain error**: Added bounds checking to prevent NaN when coordinates are identical
+3. **Performance**: Added `STABLE` modifier so Postgres can optimize repeated calls
+4. **Security**: Added `SECURITY DEFINER` so functions work with RLS policies
+
