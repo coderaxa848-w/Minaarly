@@ -167,10 +167,8 @@ npx tsc --noEmit         # Check TypeScript errors
 
 ## Deployment
 
-### Lovable Platform
-The app is automatically deployed via Lovable:
-- **Preview:** https://id-preview--e7bf88f0-3a10-4b14-a435-d8f2cd768865.lovable.app
-- Changes are deployed automatically on each commit
+### Production
+- **URL:** https://www.minaarly.co.uk
 
 ### Manual Deployment
 ```bash

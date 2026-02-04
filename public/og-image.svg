@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0fdf4"/>
+      <stop offset="100%" style="stop-color:#dcfce7"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  
+  <!-- Logo Icon -->
+  <g transform="translate(100, 200)">
+    <rect width="80" height="80" rx="16" fill="#16A34A"/>
+    <path d="M40 15C40 15 30 22.5 30 30V35H25V30C25 20 40 10 40 10C40 10 55 20 55 30V35H50V30C50 22.5 40 15 40 15Z" fill="white"/>
+    <rect x="25" y="35" width="30" height="30" rx="2.5" fill="white"/>
+    <rect x="35" y="45" width="10" height="20" fill="#16A34A"/>
+    <circle cx="40" cy="27.5" r="5" fill="white"/>
+  </g>
+  
+  <!-- Brand Name -->
+  <text x="200" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="700" fill="#16A34A">Minaarly</text>
+  
+  <!-- Tagline -->
+  <text x="100" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="600" fill="#1f2937">Your masjid,</text>
+  <text x="100" y="410" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="600" fill="#16A34A">one tap away</text>
+  
+  <!-- Description -->
+  <text x="100" y="500" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#6b7280">Discover mosques, get accurate prayer times,</text>
+  <text x="100" y="535" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#6b7280">and never miss a community event.</text>
+  
+  <!-- Decorative elements -->
+  <circle cx="1000" cy="200" r="150" fill="#16A34A" opacity="0.1"/>
+  <circle cx="1050" cy="350" r="100" fill="#16A34A" opacity="0.15"/>
+  <circle cx="950" cy="450" r="80" fill="#16A34A" opacity="0.1"/>
+</svg>
