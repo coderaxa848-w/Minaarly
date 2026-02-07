@@ -487,16 +487,26 @@ export type Database = {
         }
         Returns: {
           address: string
+          capacity: number
           city: string
+          contact_page: string
           distance_miles: number
+          email: string
           facilities: string[]
+          has_womens_section: boolean
           id: string
+          is_multi_faith: boolean
           latitude: number
           longitude: number
           madhab: string
+          management: string
           name: string
+          phone: string
           postcode: string
           slug: string
+          social_links: Json
+          usage_type: string
+          website: string
         }[]
       }
       has_role: {

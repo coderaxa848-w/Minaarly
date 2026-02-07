@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileText, Play, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { Upload, FileText, Play, CheckCircle, XCircle, AlertTriangle, Loader2, Users, Globe, MapPin } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -12,12 +12,21 @@ interface ParsedMosque {
   name: string;
   address: string;
   city: string;
-  postcode: string;
+  postcode: string | null;
   latitude: number;
   longitude: number;
   phone: string | null;
+  email: string | null;
+  website: string | null;
   madhab: string | null;
   facilities: string[];
+  capacity: number | null;
+  has_womens_section: boolean | null;
+  usage_type: string;
+  is_multi_faith: boolean;
+  management: string | null;
+  social_links: Record<string, string>;
+  contact_page: string | null;
   lineNumber: number;
 }
 
@@ -31,6 +40,7 @@ interface DryRunResult {
   success: boolean;
   dryRun: boolean;
   totalLines: number;
+  processedRange: { start: number; end: number };
   parsedCount: number;
   errorCount: number;
   preview: ParsedMosque[];
@@ -41,13 +51,18 @@ interface ImportResult {
   success: boolean;
   dryRun: boolean;
   totalLines: number;
+  processedRange: { start: number; end: number };
   parsedCount: number;
   parseErrors: number;
   insertedCount: number;
   insertErrorCount: number;
   insertErrors: { name: string; error: string }[];
   parseErrorSamples: ParseError[];
+  hasMore: boolean;
+  nextStartLine: number;
 }
+
+const CHUNK_SIZE = 500;
 
 export default function ImportMosques() {
   const [file, setFile] = useState<File | null>(null);
@@ -56,6 +71,10 @@ export default function ImportMosques() {
   const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [progress, setProgress] = useState(0);
+  const [currentChunk, setCurrentChunk] = useState(0);
+  const [totalChunks, setTotalChunks] = useState(0);
+  const [cumulativeInserted, setCumulativeInserted] = useState(0);
+  const [cumulativeErrors, setCumulativeErrors] = useState(0);
   const { toast } = useToast();
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -64,7 +83,11 @@ export default function ImportMosques() {
       setFile(selectedFile);
       setDryRunResult(null);
       setImportResult(null);
-      
+      setCumulativeInserted(0);
+      setCumulativeErrors(0);
+      setCurrentChunk(0);
+      setTotalChunks(0);
+
       const reader = new FileReader();
       reader.onload = (event) => {
         const text = event.target?.result as string;
@@ -85,7 +108,7 @@ export default function ImportMosques() {
 
     try {
       const { data, error } = await supabase.functions.invoke('import-mosques', {
-        body: { csvText, dryRun: true },
+        body: { csvText, dryRun: true, startLine: 0, maxLines: CHUNK_SIZE },
       });
 
       setProgress(100);
@@ -95,10 +118,12 @@ export default function ImportMosques() {
         return;
       }
 
-      setDryRunResult(data as DryRunResult);
-      toast({ 
-        title: 'Dry run complete', 
-        description: `Parsed ${data.parsedCount} mosques with ${data.errorCount} errors` 
+      const result = data as DryRunResult;
+      setDryRunResult(result);
+      setTotalChunks(Math.ceil(result.totalLines / CHUNK_SIZE));
+      toast({
+        title: 'Dry run complete',
+        description: `Found ${result.totalLines} mosques. ${result.parsedCount} parsed successfully, ${result.errorCount} errors in first chunk.`,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -121,30 +146,53 @@ export default function ImportMosques() {
     }
 
     setLoading(true);
-    setProgress(10);
+    setProgress(0);
+    setCumulativeInserted(0);
+    setCumulativeErrors(0);
+    setCurrentChunk(0);
+
+    const totalLines = dryRunResult.totalLines;
+    const chunks = Math.ceil(totalLines / CHUNK_SIZE);
+    setTotalChunks(chunks);
+
+    let totalInserted = 0;
+    let totalErrors = 0;
+    let lastResult: ImportResult | null = null;
 
     try {
-      // Simulate progress during import
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 5, 90));
-      }, 1000);
+      for (let chunk = 0; chunk < chunks; chunk++) {
+        setCurrentChunk(chunk + 1);
+        const startLine = chunk * CHUNK_SIZE;
 
-      const { data, error } = await supabase.functions.invoke('import-mosques', {
-        body: { csvText, dryRun: false },
-      });
+        const { data, error } = await supabase.functions.invoke('import-mosques', {
+          body: { csvText, dryRun: false, startLine, maxLines: CHUNK_SIZE },
+        });
 
-      clearInterval(progressInterval);
-      setProgress(100);
+        if (error) {
+          toast({ title: `Chunk ${chunk + 1} failed`, description: error.message, variant: 'destructive' });
+          break;
+        }
 
-      if (error) {
-        toast({ title: 'Import failed', description: error.message, variant: 'destructive' });
-        return;
+        const result = data as ImportResult;
+        totalInserted += result.insertedCount;
+        totalErrors += result.insertErrorCount;
+        setCumulativeInserted(totalInserted);
+        setCumulativeErrors(totalErrors);
+        setProgress(Math.round(((chunk + 1) / chunks) * 100));
+        lastResult = result;
       }
 
-      setImportResult(data as ImportResult);
-      toast({ 
-        title: 'Import complete!', 
-        description: `Successfully imported ${data.insertedCount} mosques` 
+      if (lastResult) {
+        setImportResult({
+          ...lastResult,
+          insertedCount: totalInserted,
+          insertErrorCount: totalErrors,
+        });
+      }
+
+      toast({
+        title: 'Import complete!',
+        description: `Successfully imported ${totalInserted} mosques with ${totalErrors} errors`,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -154,11 +202,15 @@ export default function ImportMosques() {
     }
   };
 
+  const getSocialLinksCount = (links: Record<string, string>) => {
+    return Object.values(links).filter((v) => v).length;
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Import Mosques</h1>
-        <p className="text-muted-foreground">Bulk import mosques from CSV file</p>
+        <p className="text-muted-foreground">Bulk import mosques from CSV file (v3 format)</p>
       </div>
 
       {/* File Upload */}
@@ -168,9 +220,7 @@ export default function ImportMosques() {
             <Upload className="h-5 w-5" />
             Upload CSV File
           </CardTitle>
-          <CardDescription>
-            Upload the MosquesJan26Extended.csv file to import mosque data
-          </CardDescription>
+          <CardDescription>Upload the MosquesJan26Extended_v3.csv file to import mosque data</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
@@ -189,12 +239,7 @@ export default function ImportMosques() {
                   </div>
                 )}
               </div>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
+              <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
             </label>
           </div>
 
@@ -212,9 +257,19 @@ export default function ImportMosques() {
           )}
 
           {loading && (
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
               <Progress value={progress} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-1">Processing... {progress}%</p>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>
+                  {currentChunk > 0 ? `Chunk ${currentChunk}/${totalChunks}` : 'Processing...'}
+                </span>
+                <span>{progress}%</span>
+              </div>
+              {currentChunk > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Inserted: {cumulativeInserted} | Errors: {cumulativeErrors}
+                </p>
+              )}
             </div>
           )}
         </CardContent>
@@ -234,13 +289,17 @@ export default function ImportMosques() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-2xl font-bold">{dryRunResult.totalLines}</p>
-                  <p className="text-sm text-muted-foreground">Total Lines</p>
+                  <p className="text-sm text-muted-foreground">Total Mosques</p>
                 </div>
                 <div className="p-4 bg-green-500/10 rounded-lg">
                   <p className="text-2xl font-bold text-green-600">{dryRunResult.parsedCount}</p>
-                  <p className="text-sm text-muted-foreground">Successfully Parsed</p>
+                  <p className="text-sm text-muted-foreground">Parsed (First Chunk)</p>
                 </div>
-                <div className="p-4 bg-red-500/10 rounded-lg col-span-2">
+                <div className="p-4 bg-blue-500/10 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-600">{totalChunks}</p>
+                  <p className="text-sm text-muted-foreground">Total Chunks</p>
+                </div>
+                <div className="p-4 bg-red-500/10 rounded-lg">
                   <p className="text-2xl font-bold text-red-600">{dryRunResult.errorCount}</p>
                   <p className="text-sm text-muted-foreground">Parse Errors</p>
                 </div>
@@ -253,16 +312,51 @@ export default function ImportMosques() {
               <CardTitle>Preview (First 10 Records)</CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[300px]">
-                <div className="space-y-2">
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3">
                   {dryRunResult.preview.map((mosque, idx) => (
-                    <div key={idx} className="p-3 bg-muted rounded-lg text-sm">
-                      <p className="font-medium">{mosque.name}</p>
-                      <p className="text-muted-foreground">{mosque.address}</p>
-                      <div className="flex gap-2 mt-1">
-                        <Badge variant="outline">{mosque.city}</Badge>
-                        <Badge variant="outline">{mosque.postcode}</Badge>
-                        {mosque.madhab && <Badge>{mosque.madhab}</Badge>}
+                    <div key={idx} className="p-3 bg-muted rounded-lg text-sm space-y-2">
+                      <div className="flex items-start justify-between">
+                        <p className="font-medium">{mosque.name}</p>
+                        {mosque.capacity && (
+                          <Badge variant="outline" className="ml-2">
+                            <Users className="h-3 w-3 mr-1" />
+                            {mosque.capacity}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-muted-foreground text-xs flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {mosque.address}, {mosque.city} {mosque.postcode}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {mosque.madhab && <Badge variant="secondary">{mosque.madhab}</Badge>}
+                        {mosque.usage_type !== 'regular' && (
+                          <Badge variant="outline" className="capitalize">
+                            {mosque.usage_type.replace('_', ' ')}
+                          </Badge>
+                        )}
+                        {mosque.has_womens_section && (
+                          <Badge variant="outline" className="bg-pink-500/10 text-pink-600 border-pink-200">
+                            Women's Area
+                          </Badge>
+                        )}
+                        {mosque.is_multi_faith && (
+                          <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-200">
+                            Multi-faith
+                          </Badge>
+                        )}
+                        {mosque.management && (
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-200">
+                            {mosque.management}
+                          </Badge>
+                        )}
+                        {getSocialLinksCount(mosque.social_links) > 0 && (
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-200">
+                            <Globe className="h-3 w-3 mr-1" />
+                            {getSocialLinksCount(mosque.social_links)} links
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -284,7 +378,9 @@ export default function ImportMosques() {
                   <div className="space-y-2">
                     {dryRunResult.errors.map((error, idx) => (
                       <div key={idx} className="p-3 bg-red-500/10 rounded-lg text-sm">
-                        <p className="font-medium text-red-600">Line {error.lineNumber}: {error.error}</p>
+                        <p className="font-medium text-red-600">
+                          Line {error.lineNumber}: {error.error}
+                        </p>
                         <p className="text-muted-foreground text-xs truncate">{error.rawLine}</p>
                       </div>
                     ))}
@@ -316,8 +412,8 @@ export default function ImportMosques() {
                 <p className="text-sm text-muted-foreground">Total Lines</p>
               </div>
               <div className="p-4 bg-blue-500/10 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">{importResult.parsedCount}</p>
-                <p className="text-sm text-muted-foreground">Parsed</p>
+                <p className="text-2xl font-bold text-blue-600">{totalChunks}</p>
+                <p className="text-sm text-muted-foreground">Chunks Processed</p>
               </div>
               <div className="p-4 bg-green-500/10 rounded-lg">
                 <p className="text-2xl font-bold text-green-600">{importResult.insertedCount}</p>
