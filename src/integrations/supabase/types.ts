@@ -200,66 +200,156 @@ export type Database = {
         Row: {
           address: string
           background_image_url: string | null
+          capacity: number | null
           city: string
+          contact_page: string | null
           county: string | null
           created_at: string | null
           description: string | null
           email: string | null
           facilities: string[] | null
+          has_womens_section: boolean | null
           id: string
+          is_multi_faith: boolean | null
           is_verified: boolean | null
           languages: string[] | null
           latitude: number | null
           longitude: number | null
           madhab: string | null
+          management: string | null
           name: string
           phone: string | null
           postcode: string
           slug: string
+          social_links: Json | null
           updated_at: string | null
+          usage_type: string | null
           website: string | null
         }
         Insert: {
           address: string
           background_image_url?: string | null
+          capacity?: number | null
           city: string
+          contact_page?: string | null
           county?: string | null
           created_at?: string | null
           description?: string | null
           email?: string | null
           facilities?: string[] | null
+          has_womens_section?: boolean | null
           id?: string
+          is_multi_faith?: boolean | null
           is_verified?: boolean | null
           languages?: string[] | null
           latitude?: number | null
           longitude?: number | null
           madhab?: string | null
+          management?: string | null
           name: string
           phone?: string | null
           postcode: string
           slug: string
+          social_links?: Json | null
           updated_at?: string | null
+          usage_type?: string | null
           website?: string | null
         }
         Update: {
           address?: string
           background_image_url?: string | null
+          capacity?: number | null
           city?: string
+          contact_page?: string | null
           county?: string | null
           created_at?: string | null
           description?: string | null
           email?: string | null
           facilities?: string[] | null
+          has_womens_section?: boolean | null
           id?: string
+          is_multi_faith?: boolean | null
           is_verified?: boolean | null
           languages?: string[] | null
           latitude?: number | null
           longitude?: number | null
           madhab?: string | null
+          management?: string | null
           name?: string
           phone?: string | null
           postcode?: string
           slug?: string
+          social_links?: Json | null
+          updated_at?: string | null
+          usage_type?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      mosques_backup_20260207: {
+        Row: {
+          address: string | null
+          background_image_url: string | null
+          city: string | null
+          county: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          facilities: string[] | null
+          id: string | null
+          is_verified: boolean | null
+          languages: string[] | null
+          latitude: number | null
+          longitude: number | null
+          madhab: string | null
+          name: string | null
+          phone: string | null
+          postcode: string | null
+          slug: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          background_image_url?: string | null
+          city?: string | null
+          county?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          facilities?: string[] | null
+          id?: string | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          madhab?: string | null
+          name?: string | null
+          phone?: string | null
+          postcode?: string | null
+          slug?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          background_image_url?: string | null
+          city?: string | null
+          county?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          facilities?: string[] | null
+          id?: string | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          madhab?: string | null
+          name?: string | null
+          phone?: string | null
+          postcode?: string | null
+          slug?: string | null
           updated_at?: string | null
           website?: string | null
         }
@@ -355,23 +445,30 @@ export type Database = {
         Returns: {
           address: string
           background_image_url: string | null
+          capacity: number | null
           city: string
+          contact_page: string | null
           county: string | null
           created_at: string | null
           description: string | null
           email: string | null
           facilities: string[] | null
+          has_womens_section: boolean | null
           id: string
+          is_multi_faith: boolean | null
           is_verified: boolean | null
           languages: string[] | null
           latitude: number | null
           longitude: number | null
           madhab: string | null
+          management: string | null
           name: string
           phone: string | null
           postcode: string
           slug: string
+          social_links: Json | null
           updated_at: string | null
+          usage_type: string | null
           website: string | null
         }[]
         SetofOptions: {
@@ -418,23 +515,30 @@ export type Database = {
         Returns: {
           address: string
           background_image_url: string | null
+          capacity: number | null
           city: string
+          contact_page: string | null
           county: string | null
           created_at: string | null
           description: string | null
           email: string | null
           facilities: string[] | null
+          has_womens_section: boolean | null
           id: string
+          is_multi_faith: boolean | null
           is_verified: boolean | null
           languages: string[] | null
           latitude: number | null
           longitude: number | null
           madhab: string | null
+          management: string | null
           name: string
           phone: string | null
           postcode: string
           slug: string
+          social_links: Json | null
           updated_at: string | null
+          usage_type: string | null
           website: string | null
         }[]
         SetofOptions: {
