@@ -217,6 +217,7 @@ export type Database = {
           longitude: number | null
           madhab: string | null
           management: string | null
+          muslims_in_britain_data: boolean | null
           name: string
           phone: string | null
           postcode: string
@@ -247,6 +248,7 @@ export type Database = {
           longitude?: number | null
           madhab?: string | null
           management?: string | null
+          muslims_in_britain_data?: boolean | null
           name: string
           phone?: string | null
           postcode: string
@@ -277,6 +279,7 @@ export type Database = {
           longitude?: number | null
           madhab?: string | null
           management?: string | null
+          muslims_in_britain_data?: boolean | null
           name?: string
           phone?: string | null
           postcode?: string
@@ -469,6 +472,7 @@ export type Database = {
           longitude: number | null
           madhab: string | null
           management: string | null
+          muslims_in_britain_data: boolean | null
           name: string
           phone: string | null
           postcode: string
@@ -550,6 +554,7 @@ export type Database = {
           longitude: number | null
           madhab: string | null
           management: string | null
+          muslims_in_britain_data: boolean | null
           name: string
           phone: string | null
           postcode: string
