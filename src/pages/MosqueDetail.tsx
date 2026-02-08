@@ -47,6 +47,20 @@ const facilityIcons: Record<string, { icon: React.ReactNode; label: string }> = 
   food: { icon: <Utensils className="h-4 w-4" />, label: 'Food Available' },
 };
 
+const serviceLabels: Record<string, string> = {
+  nikkah: 'Nikkah (Islamic Marriage)',
+  hall_booking: 'Hall/Venue Booking',
+  immigration_advice: 'Immigration Advice',
+  counselling: 'Counselling Services',
+  funeral: 'Funeral Services',
+  zakat_collection: 'Zakat Collection',
+  food_bank: 'Food Bank',
+};
+
+const formatServiceName = (code: string): string => {
+  return serviceLabels[code] || code;
+};
+
 export default function MosqueDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
@@ -344,6 +358,24 @@ export default function MosqueDetail() {
                         </Badge>
                       );
                     })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Services */}
+            {mosque.services && mosque.services.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Services Offered</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {mosque.services.map((service) => (
+                      <Badge key={service} variant="outline" className="py-1.5">
+                        {formatServiceName(service)}
+                      </Badge>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

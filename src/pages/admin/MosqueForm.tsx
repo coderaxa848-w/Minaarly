@@ -27,6 +27,16 @@ const LANGUAGES = ['English', 'Arabic', 'Urdu', 'Bengali', 'Somali', 'Turkish', 
 
 const MADHABS = ['Hanafi', 'Shafi', 'Maliki', 'Hanbali', 'Salafi', 'Deobandi', 'Barelvi', 'Other'];
 
+const SERVICES = [
+  { code: 'nikkah', label: 'Nikkah (Islamic Marriage)' },
+  { code: 'hall_booking', label: 'Hall/Venue Booking' },
+  { code: 'immigration_advice', label: 'Immigration Advice' },
+  { code: 'counselling', label: 'Counselling Services' },
+  { code: 'funeral', label: 'Funeral Services' },
+  { code: 'zakat_collection', label: 'Zakat Collection' },
+  { code: 'food_bank', label: 'Food Bank' },
+];
+
 interface FormData {
   name: string;
   address: string;
@@ -40,6 +50,7 @@ interface FormData {
   madhab: string;
   facilities: string[];
   languages: string[];
+  services: string[];
   latitude: number | null;
   longitude: number | null;
   is_verified: boolean;
@@ -65,6 +76,7 @@ export default function MosqueForm() {
     madhab: '',
     facilities: [],
     languages: [],
+    services: [],
     latitude: null,
     longitude: null,
     is_verified: false,
@@ -105,6 +117,7 @@ export default function MosqueForm() {
         madhab: data.madhab || '',
         facilities: data.facilities || [],
         languages: data.languages || [],
+        services: (data as any).services || [],
         latitude: data.latitude,
         longitude: data.longitude,
         is_verified: data.is_verified || false,
@@ -175,6 +188,7 @@ export default function MosqueForm() {
         madhab: formData.madhab || null,
         facilities: formData.facilities,
         languages: formData.languages,
+        services: formData.services,
         latitude: formData.latitude,
         longitude: formData.longitude,
         is_verified: formData.is_verified,
@@ -471,6 +485,84 @@ export default function MosqueForm() {
                   {language}
                 </label>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Services */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Services Offered</CardTitle>
+            <CardDescription>Select services this mosque provides (or add custom)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {SERVICES.map((service) => (
+                <label
+                  key={service.code}
+                  className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    formData.services.includes(service.code)
+                      ? 'bg-primary/10 border-primary'
+                      : 'hover:bg-accent'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.services.includes(service.code)}
+                    onChange={() => setFormData(prev => ({
+                      ...prev,
+                      services: toggleArrayItem(prev.services, service.code)
+                    }))}
+                    className="sr-only"
+                  />
+                  <span className="text-sm">{service.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="custom-service">Add Custom Service</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="custom-service"
+                  placeholder="e.g., Hifz Program"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const input = e.currentTarget;
+                      const value = input.value.trim();
+                      if (value && !formData.services.includes(value)) {
+                        setFormData(prev => ({
+                          ...prev,
+                          services: [...prev.services, value]
+                        }));
+                        input.value = '';
+                      }
+                    }
+                  }}
+                />
+              </div>
+              {formData.services.filter(s => !SERVICES.find(srv => srv.code === s)).length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.services.filter(s => !SERVICES.find(srv => srv.code === s)).map((custom) => (
+                    <span
+                      key={custom}
+                      className="px-3 py-1 rounded-full bg-secondary text-sm flex items-center gap-2"
+                    >
+                      {custom}
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          services: prev.services.filter(s => s !== custom)
+                        }))}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
