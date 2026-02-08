@@ -34,6 +34,7 @@ Main table storing mosque information.
 | email | text | Yes | - | Contact email |
 | website | text | Yes | - | Website URL |
 | background_image_url | text | Yes | - | Hero image URL |
+| services | text[] | Yes | '{}' | Services offered (nikkah, hall_booking, immigration_advice, counselling, funeral, zakat_collection, food_bank, or custom) |
 | is_verified | boolean | Yes | false | Verification status |
 | created_at | timestamptz | Yes | now() | Creation timestamp |
 | updated_at | timestamptz | Yes | now() | Last update timestamp |

@@ -220,6 +220,7 @@ export type Database = {
           name: string
           phone: string | null
           postcode: string
+          services: string[] | null
           slug: string
           social_links: Json | null
           updated_at: string | null
@@ -249,6 +250,7 @@ export type Database = {
           name: string
           phone?: string | null
           postcode: string
+          services?: string[] | null
           slug: string
           social_links?: Json | null
           updated_at?: string | null
@@ -278,6 +280,7 @@ export type Database = {
           name?: string
           phone?: string | null
           postcode?: string
+          services?: string[] | null
           slug?: string
           social_links?: Json | null
           updated_at?: string | null
@@ -465,6 +468,7 @@ export type Database = {
           name: string
           phone: string | null
           postcode: string
+          services: string[] | null
           slug: string
           social_links: Json | null
           updated_at: string | null
@@ -545,6 +549,7 @@ export type Database = {
           name: string
           phone: string | null
           postcode: string
+          services: string[] | null
           slug: string
           social_links: Json | null
           updated_at: string | null

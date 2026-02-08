@@ -39,6 +39,7 @@ This document summarizes the backend infrastructure and data available for the R
 | `description` | text | About the mosque (nullable) |
 | `facilities` | text[] | Array: `womens_area`, `parking`, `wudu`, etc. |
 | `languages` | text[] | Languages spoken |
+| `services` | text[] | Services: `nikkah`, `hall_booking`, `immigration_advice`, `counselling`, `funeral`, `zakat_collection`, `food_bank`, or custom text |
 | `madhab` | text | Islamic school: `Deobandi`, `Barelvi`, `Salafi`, `Shia`, null |
 | `phone` | text | Contact phone (nullable) |
 | `email` | text | Contact email (nullable) |
@@ -298,6 +299,7 @@ const { data } = await supabase.rpc('search_mosques', {
 5. **Public Data**: Mosque list and details require no authentication
 6. **User Features**: Saving mosques and event RSVP require authentication
 7. **Images**: Some mosques have `background_image_url`, provide fallback
+8. **Services**: Display `services` array as badges, use code-to-label mapping for standard codes, show custom text as-is
 
 ---
 
