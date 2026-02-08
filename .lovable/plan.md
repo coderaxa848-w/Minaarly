@@ -1,59 +1,122 @@
 
-# Direct Mosque Data Import Plan
+# Add Services Field to Mosques Table
 
-## Problem Identified
-The edge function's CORS headers are incomplete, causing "Failed to send a request" errors from the browser.
+## Overview
+Add a `services` column to the `mosques` table to allow mosques to list the services they offer (Nikkah, Hall booking, Immigration advice, etc.).
 
-## Solution: Fix CORS + Direct API Import
+## Database Change
 
-### Step 1: Fix Edge Function CORS Headers
-Update `supabase/functions/import-mosques/index.ts` to include all required Supabase client headers:
+### Migration: Add `services` column
+
+```sql
+-- Add services column to mosques table
+ALTER TABLE mosques
+ADD COLUMN services TEXT[] DEFAULT '{}';
+
+-- Add comment for documentation
+COMMENT ON COLUMN mosques.services IS 
+  'Services offered by the mosque: nikkah, hall_booking, immigration_advice, counselling, funeral, or custom text';
+```
+
+### Suggested Service Codes (for consistency)
+| Code | Display Name |
+|------|--------------|
+| `nikkah` | Nikkah (Islamic Marriage) |
+| `hall_booking` | Hall/Venue Booking |
+| `immigration_advice` | Immigration Advice |
+| `counselling` | Counselling Services |
+| `funeral` | Funeral Services |
+| `zakat_collection` | Zakat Collection |
+| `food_bank` | Food Bank |
+| (any custom text) | (Custom Service) |
+
+The array accepts any text, so mosques can add custom services not in the predefined list.
+
+## React Native Developer Instructions
+
+### Claim Form - Notes Field
+The `notes` field already exists in `mosque_admins`. Include it in the claim submission:
 
 ```typescript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+// Submit claim with notes
+const { error } = await supabase
+  .from('mosque_admins')
+  .insert({
+    mosque_id: selectedMosque.id,
+    user_id: user.id,
+    claimant_name: name,
+    claimant_email: user.email,
+    claimant_phone: phone,
+    claimant_role: 'imam', // or 'committee_member', 'volunteer', 'other'
+    notes: additionalNotes  // <-- FREE TEXT FIELD FOR DETAILS
+  });
+```
+
+### Displaying Services on Mosque Detail
+
+```typescript
+// Fetch mosque with services
+const { data } = await supabase
+  .from('mosques')
+  .select('*, services')
+  .eq('slug', mosqueSlug)
+  .single();
+
+// Display services
+{data.services?.map((service) => (
+  <Badge key={service}>{formatServiceName(service)}</Badge>
+))}
+
+// Helper to format service codes
+const formatServiceName = (code: string) => {
+  const map: Record<string, string> = {
+    nikkah: 'Nikkah',
+    hall_booking: 'Hall Booking',
+    immigration_advice: 'Immigration Advice',
+    counselling: 'Counselling',
+    funeral: 'Funeral Services',
+    zakat_collection: 'Zakat Collection',
+    food_bank: 'Food Bank',
+  };
+  return map[code] || code; // Return code as-is if custom
 };
 ```
 
-### Step 2: Deploy Edge Function
-The function will auto-deploy after the fix.
+### Mosque Admin - Adding Services
 
-### Step 3: Import Data via API
-I'll use the `curl_edge_functions` tool to call the import function directly with the CSV data from `src/mosques/MosquesJan26Extended_v3.csv`.
+When a mosque admin edits their mosque, they can update services:
 
-The import will be done in 5 chunks of 500 records each:
-- Chunk 1: Lines 0-499 (500 mosques)
-- Chunk 2: Lines 500-999 (500 mosques)  
-- Chunk 3: Lines 1000-1499 (500 mosques)
-- Chunk 4: Lines 1500-1999 (500 mosques)
-- Chunk 5: Lines 2000-2040 (40 mosques)
-
-### Step 4: Verify Import
-Query the database to confirm:
-- Total count = 2,040
-- Spot check random records
-- Verify slugs are unique
+```typescript
+const { error } = await supabase
+  .from('mosques')
+  .update({
+    services: ['nikkah', 'hall_booking', 'Custom Service Here']
+  })
+  .eq('id', mosqueId);
+```
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `supabase/functions/import-mosques/index.ts` | Fix CORS headers |
-
-## Expected Result
-All 2,040 mosques imported with:
-- Proper slugs (with collision handling)
-- Social links as JSONB
-- Usage type, capacity, management fields populated
-- Facilities array populated from women's section data
+| Database Migration | Add `services TEXT[]` column |
+| `src/integrations/supabase/types.ts` | Auto-regenerated after migration |
+| `src/pages/MosqueDetail.tsx` | Display services section |
+| `src/pages/admin/MosqueForm.tsx` | Add services multi-select |
+| `src/lib/types.ts` | Add Service type (optional) |
+| `docs/DATABASE.md` | Document new column |
+| `docs/HANDOFF_REACT_NATIVE.md` | Add services to mobile docs |
 
 ## Technical Notes
 
-### Why This Will Work
-- The `curl_edge_functions` tool bypasses browser CORS restrictions
-- I can read the CSV directly from the project files
-- The chunked import avoids timeout issues
+### Why TEXT[] instead of just TEXT?
+- Mosques typically offer multiple services
+- Consistent with `facilities` field pattern
+- Easy to query: `WHERE 'nikkah' = ANY(services)`
+- Easy to filter in the app
 
-### Backup Safety
-The `mosques_backup_20260207` table already contains your original data if anything needs to be recovered.
+### RLS
+No new policies needed - services inherit existing mosque RLS:
+- Anyone can view (SELECT)
+- Mosque admins can update their mosque
+- Platform admins have full access
