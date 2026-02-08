@@ -431,6 +431,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_submit_mosque_claim: {
+        Args: { _email: string; _mosque_id: string; _user_id: string }
+        Returns: boolean
+      }
       generate_slug: { Args: { city: string; name: string }; Returns: string }
       get_event_interested_count: {
         Args: { _event_id: string }
