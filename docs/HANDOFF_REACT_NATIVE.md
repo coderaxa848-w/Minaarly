@@ -126,60 +126,124 @@ This document summarizes the backend infrastructure and data available for the R
 
 ---
 
-## Sample Queries
+## Mosque Claim Submission (NEW)
 
-### Fetch All Mosques (for map)
+This section documents the complete claim submission flow for the React Native app.
+
+### Schema: `mosque_admins`
+
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `mosque_id` | uuid | **Yes** | The mosque being claimed |
+| `user_id` | uuid | **Yes** | Must equal authenticated user's ID |
+| `claimant_name` | text | Yes | Full name from form |
+| `claimant_email` | text | **Yes** | Must equal user's email from JWT |
+| `claimant_phone` | text | Yes | Phone number |
+| `claimant_role` | enum | Yes | See role mapping below |
+| `notes` | text | No | Additional notes (free text) |
+| `status` | enum | Auto | Defaults to `pending` |
+
+### Role Mapping (CRITICAL)
+
+The database uses snake_case enum values. Map UI labels correctly:
+
 ```typescript
-const { data } = await supabase
-  .from('mosques')
-  .select('id, name, slug, city, postcode, latitude, longitude, madhab, facilities')
-  .not('latitude', 'is', null);
+type ClaimantRole = 'imam' | 'committee_member' | 'volunteer' | 'other';
+
+const ROLE_MAP: Record<string, ClaimantRole> = {
+  'Imam': 'imam',
+  'Committee': 'committee_member',
+  'Volunteer': 'volunteer',
+  'Other': 'other',
+};
 ```
 
-### Fetch Single Mosque with Prayer Times
+### Submit Claim Implementation
+
 ```typescript
-const { data } = await supabase
-  .from('mosques')
-  .select(`
-    *,
-    iqamah_times (*)
-  `)
-  .eq('slug', 'mosque-slug')
-  .single();
+async function submitMosqueClaim({
+  mosqueId,
+  fullName,
+  phoneNumber,
+  role,        // UI label: "Imam", "Committee", etc.
+  notes,       // Additional Notes text
+}: {
+  mosqueId: string;
+  fullName: string;
+  phoneNumber: string;
+  role: string;
+  notes?: string;
+}) {
+  // Get authenticated user (REQUIRED - RLS enforces this)
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  if (authError || !user) {
+    throw new Error('You must be logged in to claim a mosque');
+  }
+
+  // Insert claim - RLS validates user_id and claimant_email match JWT
+  const { data, error } = await supabase
+    .from('mosque_admins')
+    .insert({
+      mosque_id: mosqueId,
+      user_id: user.id,                    // MUST match auth.uid()
+      claimant_name: fullName,
+      claimant_email: user.email,          // MUST match JWT email
+      claimant_phone: phoneNumber,
+      claimant_role: ROLE_MAP[role],       // Convert UI label to enum
+      notes: notes || null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    // Handle specific errors
+    if (error.code === '42501') {
+      throw new Error('You already have a pending or approved claim for this mosque');
+    }
+    if (error.code === '23503') {
+      throw new Error('This mosque no longer exists');
+    }
+    throw error;
+  }
+
+  return data;
+}
 ```
 
-### Search Mosques by City
+### Check If User Can Claim (Show/Hide Button)
+
 ```typescript
-const { data } = await supabase
-  .from('mosques')
-  .select('*')
-  .ilike('city', `%${searchTerm}%`)
-  .limit(50);
+async function canClaimMosque(mosqueId: string): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  // Query existing claims by this user
+  const { data } = await supabase
+    .from('mosque_admins')
+    .select('id, status')
+    .eq('mosque_id', mosqueId)
+    .or(`user_id.eq.${user.id},claimant_email.eq.${user.email}`)
+    .in('status', ['pending', 'approved'])
+    .maybeSingle();
+
+  return !data; // Can claim if no existing claim
+}
 ```
 
-### Fetch Upcoming Events for a Mosque
-```typescript
-const { data } = await supabase
-  .from('events')
-  .select('*')
-  .eq('mosque_id', mosqueId)
-  .gte('event_date', new Date().toISOString().split('T')[0])
-  .order('event_date', { ascending: true });
-```
+### Error Handling
 
-### Save/Unsave Mosque (Authenticated)
-```typescript
-// Save
-await supabase.from('saved_mosques').insert({
-  user_id: user.id,
-  mosque_id: mosqueId
-});
+| Error Code | Meaning | User Message |
+|------------|---------|--------------|
+| `42501` | RLS violation (duplicate or auth mismatch) | "You already have a pending claim for this mosque" |
+| `23503` | Invalid mosque_id FK | "This mosque no longer exists" |
+| Auth error | Not logged in | "Please log in to claim this mosque" |
 
-// Unsave
-await supabase.from('saved_mosques').delete()
-  .eq('user_id', user.id)
-  .eq('mosque_id', mosqueId);
-```
+### Success Flow
+1. Show success toast/alert
+2. Navigate back to mosque detail
+3. Claim button disappears (canClaimMosque returns false)
+4. Claim appears in admin dashboard at `/admin/claims` as "Pending"
 
 ---
 
