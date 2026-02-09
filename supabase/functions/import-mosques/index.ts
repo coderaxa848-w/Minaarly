@@ -150,6 +150,33 @@ function generateBaseSlug(name: string, postcode: string | null): string {
   return slug;
 }
 
+// Query DB for all slugs matching base pattern and find next available
+async function getNextAvailableSlug(
+  supabase: any,
+  baseSlug: string,
+  slugSet: Set<string>
+): Promise<string> {
+  const { data } = await supabase
+    .from('mosques')
+    .select('slug')
+    .like('slug', `${baseSlug}%`);
+
+  if (data) {
+    for (const row of data) {
+      slugSet.add(row.slug);
+    }
+  }
+
+  let slug = baseSlug;
+  let counter = 1;
+  while (slugSet.has(slug)) {
+    counter++;
+    slug = `${baseSlug}-${counter}`;
+  }
+  slugSet.add(slug);
+  return slug;
+}
+
 // Parse a single CSV line into MosqueImport
 function parseCsvLine(line: string, lineNumber: number): MosqueImport | ParseError {
   try {
@@ -299,15 +326,8 @@ Deno.serve(async (req) => {
 
       for (const mosque of batch) {
         try {
-          // Generate unique slug with collision handling
-          let slug = generateBaseSlug(mosque.name, mosque.postcode);
-          let counter = 1;
-
-          while (slugSet.has(slug)) {
-            counter++;
-            slug = generateBaseSlug(mosque.name, mosque.postcode) + '-' + counter;
-          }
-          slugSet.add(slug);
+          const baseSlug = generateBaseSlug(mosque.name, mosque.postcode);
+          const slug = await getNextAvailableSlug(supabase, baseSlug, slugSet);
 
           const { error: insertError } = await supabase.from('mosques').insert({
             name: mosque.name,
@@ -330,6 +350,7 @@ Deno.serve(async (req) => {
             contact_page: mosque.contact_page,
             slug,
             is_verified: false,
+            muslims_in_britain_data: false,
           });
 
           if (insertError) {
