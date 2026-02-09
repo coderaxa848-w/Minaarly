@@ -8,7 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import MapPage from "./pages/MapPage";
+
 import Auth from "./pages/Auth";
 import MosqueDetail from "./pages/MosqueDetail";
 import NotFound from "./pages/NotFound";
@@ -29,7 +29,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/map" element={<MapPage />} />
+              
               <Route path="/auth" element={<Auth />} />
               <Route path="/mosque/:slug" element={<MosqueDetail />} />
               
