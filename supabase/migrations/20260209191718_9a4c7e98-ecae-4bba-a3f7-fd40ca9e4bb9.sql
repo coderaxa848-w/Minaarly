@@ -1,0 +1,2 @@
+UPDATE mosques SET city = 'Dundalk' WHERE name = 'Dundalk Muslim Community Centre' AND (city = '' OR city IS NULL);
+UPDATE mosques SET city = 'London' WHERE name = 'Masjid Isa Ibn Maryam' AND (city = '' OR city IS NULL);
