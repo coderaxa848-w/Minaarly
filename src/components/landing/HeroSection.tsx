@@ -1,9 +1,7 @@
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
-import { MapPin, ArrowRight, Navigation, Clock, Calendar, Star, Search, Locate } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MapPin, Clock, Calendar, Star, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useRef } from 'react';
-
 const rotatingWords = ['masjid', 'community', 'salah', 'ummah'];
 
 const liveFeed = [
@@ -154,28 +152,17 @@ export function HeroSection() {
             transition={{ duration: 0.8, delay: 0.45 }}
             className="max-w-2xl mx-auto mb-16"
           >
-            <Link to="/map" className="block">
-              <motion.div 
-                className={`relative flex items-center gap-3 p-2 pl-6 rounded-2xl bg-white dark:bg-slate-900 border-2 transition-all duration-300 shadow-xl shadow-black/5 ${
-                  searchFocused 
-                    ? 'border-primary shadow-2xl shadow-primary/10' 
-                    : 'border-emerald-200/60 dark:border-emerald-800/30 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10'
-                }`}
-                onHoverStart={() => setSearchFocused(true)}
-                onHoverEnd={() => setSearchFocused(false)}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.995 }}
+            <motion.div 
+                className="relative flex items-center gap-3 p-2 pl-6 rounded-2xl bg-white dark:bg-slate-900 border-2 transition-all duration-300 shadow-xl shadow-black/5 border-emerald-200/60 dark:border-emerald-800/30"
               >
                 <Search className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                 <div className="flex-1 py-3">
-                  <span className="text-muted-foreground text-base">Search mosques, cities, or postcodes...</span>
+                  <span className="text-muted-foreground text-base">Download our app to find mosques near you</span>
                 </div>
-                <Button size="lg" className="h-12 px-6 gradient-teal shadow-teal rounded-xl font-semibold group">
-                  <Locate className="h-4 w-4 mr-2 group-hover:animate-pulse" />
-                  Find Near Me
+                <Button size="lg" className="h-12 px-6 gradient-teal shadow-teal rounded-xl font-semibold">
+                  Get the App
                 </Button>
               </motion.div>
-            </Link>
           </motion.div>
 
           {/* Stats - horizontal pill style */}

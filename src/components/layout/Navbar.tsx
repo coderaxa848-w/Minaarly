@@ -128,12 +128,6 @@ export function Navbar() {
             </Link>
           )}
 
-          <Link to="/map">
-            <Button className="gradient-teal shadow-teal">
-              <MapPin className="h-4 w-4 mr-2" />
-              Open Map
-            </Button>
-          </Link>
         </div>
 
         {/* Mobile Menu Button */}
@@ -217,12 +211,6 @@ export function Navbar() {
                 </Link>
               )}
               
-              <Link to="/map" onClick={() => setIsOpen(false)}>
-                <Button className="w-full gradient-teal shadow-teal mt-2">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Open Map
-                </Button>
-              </Link>
             </nav>
           </motion.div>
         )}
