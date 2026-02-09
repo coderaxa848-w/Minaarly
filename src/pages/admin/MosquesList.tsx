@@ -62,7 +62,7 @@ export default function MosquesList() {
       .order('city');
     
     if (data) {
-      const uniqueCities = [...new Set(data.map(m => m.city))];
+      const uniqueCities = [...new Set(data.map(m => m.city).filter(c => c && c.trim() !== ''))];
       setCities(uniqueCities);
     }
   }
