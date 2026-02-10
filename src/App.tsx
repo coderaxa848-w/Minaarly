@@ -13,7 +13,8 @@ import Auth from "./pages/Auth";
 import MosqueDetail from "./pages/MosqueDetail";
 import NotFound from "./pages/NotFound";
 import { AdminRoute, AdminLayout } from "@/components/admin";
-import { AdminDashboard, MosquesList, MosqueForm, ClaimsList, UsersList, EventsList, ImportMosques } from "@/pages/admin";
+import { AdminDashboard, MosquesList, MosqueForm, ClaimsList, UsersList, EventsList, ImportMosques, CommunityEventsList } from "@/pages/admin";
+import SubmitEvent from "@/pages/SubmitEvent";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               
               <Route path="/auth" element={<Auth />} />
+              <Route path="/submit-event" element={<SubmitEvent />} />
               <Route path="/mosque/:slug" element={<MosqueDetail />} />
               
               {/* Admin Routes */}
@@ -43,6 +45,7 @@ const App = () => (
                 <Route path="users" element={<UsersList />} />
                 <Route path="events" element={<EventsList />} />
                 <Route path="import" element={<ImportMosques />} />
+                <Route path="community-events" element={<CommunityEventsList />} />
               </Route>
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
