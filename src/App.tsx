@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import { AdminRoute, AdminLayout } from "@/components/admin";
 import { AdminDashboard, MosquesList, MosqueForm, ClaimsList, UsersList, EventsList, ImportMosques, CommunityEventsList } from "@/pages/admin";
 import SubmitEvent from "@/pages/SubmitEvent";
+import MosqueDashboard from "@/pages/MosqueDashboard";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
               
               <Route path="/auth" element={<Auth />} />
               <Route path="/submit-event" element={<SubmitEvent />} />
+              <Route path="/mosque-dashboard" element={<MosqueDashboard />} />
               <Route path="/mosque/:slug" element={<MosqueDetail />} />
               
               {/* Admin Routes */}

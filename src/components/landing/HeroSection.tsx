@@ -159,7 +159,11 @@ export function HeroSection() {
                 <div className="flex-1 py-3">
                   <span className="text-muted-foreground text-base">Download our app to find mosques near you</span>
                 </div>
-                <Button size="lg" className="h-12 px-6 gradient-teal shadow-teal rounded-xl font-semibold">
+                <Button
+                  size="lg"
+                  className="h-12 px-6 gradient-teal shadow-teal rounded-xl font-semibold"
+                  onClick={() => document.getElementById('get-the-app')?.scrollIntoView({ behavior: 'smooth' })}
+                >
                   Get the App
                 </Button>
               </motion.div>

@@ -4,15 +4,15 @@ import appScreenshot1 from '@/assets/app-screenshot-1.png';
 import appScreenshot2 from '@/assets/app-screenshot-2.png';
 
 const appFeatures = [
-  { icon: MapPin, text: 'Find mosques instantly', color: 'text-emerald-500' },
-  { icon: Clock, text: 'Live prayer time alerts', color: 'text-amber-500' },
-  { icon: Bell, text: 'Event notifications', color: 'text-violet-500' },
-  { icon: Zap, text: 'Offline access', color: 'text-blue-500' },
+  { icon: MapPin, text: 'Search 2,000+ mosques', color: 'text-emerald-500' },
+  { icon: Clock, text: 'Live prayer & iqamah times', color: 'text-amber-500' },
+  { icon: Bell, text: 'Event & salah reminders', color: 'text-violet-500' },
+  { icon: Zap, text: 'Save your favourite mosques', color: 'text-blue-500' },
 ];
 
 export function MobileAppSection() {
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden bg-slate-950">
+    <section id="get-the-app" className="py-28 md:py-40 relative overflow-hidden bg-slate-950">
       {/* Background effects */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-b from-emerald-500/10 to-transparent rounded-full blur-3xl" />
@@ -104,15 +104,15 @@ export function MobileAppSection() {
             </motion.div>
 
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 tracking-tight leading-[1.1]">
-              Your deen,{' '}
+              The best way to{' '}
               <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
-                in your pocket
+                find your mosque
               </span>
             </h2>
             
-            <p className="text-slate-400 text-lg mb-10 max-w-lg leading-relaxed">
-              The Minaarly app brings everything to your fingertips. Find mosques, 
-              get prayer alerts, and never miss a community event — even offline.
+            <p className="text-slate-400 text-lg md:text-xl mb-10 max-w-lg leading-relaxed">
+              Minaarly puts 2,000+ UK mosques in your pocket. Search by location, 
+              check live prayer times, discover events, and save your favourites — all in one app.
             </p>
 
             {/* Feature pills */}
