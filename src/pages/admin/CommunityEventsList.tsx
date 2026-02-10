@@ -73,7 +73,26 @@ export default function CommunityEventsList() {
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: `Event ${status}`, description: `The event has been ${status}.` });
+      // If approved and linked to a mosque, create a mosque event
+      if (status === 'approved' && selectedEvent?.is_at_mosque && selectedEvent?.mosque_id) {
+        const { error: eventError } = await supabase.from('events').insert({
+          mosque_id: selectedEvent.mosque_id,
+          title: selectedEvent.title,
+          description: selectedEvent.description || null,
+          event_date: selectedEvent.event_date,
+          start_time: selectedEvent.start_time,
+          end_time: selectedEvent.end_time || null,
+          category: selectedEvent.category || 'other',
+        } as any);
+        if (eventError) {
+          console.error('Failed to create mosque event:', eventError);
+          toast({ title: 'Partial success', description: `Event approved but failed to add to mosque events: ${eventError.message}`, variant: 'destructive' });
+        } else {
+          toast({ title: 'Event approved', description: 'Event approved and added to the mosque\'s event list.' });
+        }
+      } else {
+        toast({ title: `Event ${status}`, description: `The event has been ${status}.` });
+      }
       setSelectedEvent(null);
       setAdminNotes('');
       fetchEvents();
