@@ -30,6 +30,7 @@ interface CommunityEvent {
   image_url: string | null;
   admin_notes: string | null;
   created_at: string;
+  mosque_name?: string | null;
 }
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive'; icon: any }> = {
@@ -49,7 +50,7 @@ export default function CommunityEventsList() {
 
   const fetchEvents = async () => {
     setLoading(true);
-    let query = supabase.from('community_events' as any).select('*').order('created_at', { ascending: false });
+    let query = supabase.from('community_events' as any).select('*, mosques(name)').order('created_at', { ascending: false });
     if (filter !== 'all') {
       query = query.eq('status', filter);
     }
@@ -57,7 +58,7 @@ export default function CommunityEventsList() {
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      setEvents((data as any[]) || []);
+      setEvents(((data as any[]) || []).map((e: any) => ({ ...e, mosque_name: e.mosques?.name || null })));
     }
     setLoading(false);
   };
@@ -143,7 +144,7 @@ export default function CommunityEventsList() {
                       {(event.custom_location || event.is_at_mosque) && (
                         <span className="flex items-center gap-1">
                           <MapPin className="h-3.5 w-3.5" />
-                          {event.is_at_mosque ? 'At a mosque' : event.custom_location}
+                          {event.is_at_mosque ? (event.mosque_name || 'At a mosque') : event.custom_location}
                         </span>
                       )}
                     </div>
@@ -182,7 +183,7 @@ export default function CommunityEventsList() {
 
               <div className="border-t pt-3">
                 <span className="font-medium text-muted-foreground">Location</span>
-                <p>{selectedEvent.is_at_mosque ? 'At a mosque' : selectedEvent.custom_location || 'Not specified'}</p>
+                <p>{selectedEvent.is_at_mosque ? (selectedEvent.mosque_name || 'At a mosque') : selectedEvent.custom_location || 'Not specified'}</p>
                 {selectedEvent.postcode && <p className="text-muted-foreground">Postcode: {selectedEvent.postcode}</p>}
               </div>
 
