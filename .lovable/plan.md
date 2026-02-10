@@ -1,95 +1,86 @@
 
 
-## Community Event Submissions by Organizers
+## Two Changes: Prominent Mobile App Section + Mosque Admin Dashboard
 
-### Overview
+### 1. Make MobileAppSection More Prominent
 
-Allow external event organizers (non-mosque admins) to submit events for admin approval. Approved events appear on the mobile app. This adds two new columns to the previously agreed schema: **event type** and **audience gender**.
+Since the web map has been removed and the app is the primary way to discover mosques, the MobileAppSection needs to be elevated.
 
-### Database: New Table `community_events`
+**Changes:**
+- Reorder landing page sections so MobileAppSection appears right after HeroSection
+- Add an `id="get-the-app"` anchor to MobileAppSection so the Hero "Get the App" button scrolls to it
+- Enhance the copy to position the app as THE way to use Minaarly (not supplementary)
+- Add more feature highlights: mosque search, prayer times, events, saved mosques
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid (PK) | Auto-generated |
-| user_id | uuid | The organizer who submitted |
-| status | text ('pending', 'approved', 'rejected') | Default 'pending' |
-| title | text (NOT NULL) | Event name |
-| description | text | What the event is about |
-| organizer_name | text (NOT NULL) | Organizer's full name |
-| organizer_email | text | Contact email |
-| organizer_phone | text | Contact phone |
-| event_date | date (NOT NULL) | Date of event |
-| start_time | time (NOT NULL) | Start time |
-| end_time | time | End time |
-| **event_type** | **text (NOT NULL)** | **Type of event: 'quran', 'lecture', 'talk', 'workshop', 'fundraiser', 'iftar', 'community', 'youth', 'other'** |
-| **audience** | **text (NOT NULL, default 'mixed')** | **Who the event is for: 'brothers_only', 'sisters_only', 'mixed'** |
-| is_at_mosque | boolean (default false) | Whether at a mosque |
-| mosque_id | uuid (FK to mosques, nullable) | If at a mosque, which one |
-| custom_location | text | If not at a mosque, typed address |
-| postcode | text | UK postcode for geocoding |
-| latitude | double precision | Geocoded lat |
-| longitude | double precision | Geocoded lng |
-| category | event_category enum | Reuses existing enum |
-| image_url | text | Optional event image |
-| admin_notes | text | Admin notes on approval/rejection |
-| created_at | timestamptz | Submission timestamp |
+**Files to modify:**
+- `src/pages/Index.tsx` -- Reorder: Hero, MobileApp, HowItWorks, Features, WhoItsFor, CTA
+- `src/components/landing/MobileAppSection.tsx` -- Bigger headline, stronger copy, anchor id
+- `src/components/landing/HeroSection.tsx` -- "Get the App" button scrolls to `#get-the-app`
 
-### Database: New Enums
+---
 
-Two new enums will be created to keep the data clean:
+### 2. Mosque Admin Dashboard
 
-- **`community_event_type`**: 'quran', 'lecture', 'talk', 'workshop', 'fundraiser', 'iftar', 'community', 'youth', 'other'
-- **`event_audience`**: 'brothers_only', 'sisters_only', 'mixed'
+When a user has an approved mosque claim, they get a "My Mosque" link in the navbar that takes them to a dashboard where they can manage their mosque.
 
-### RLS Policies
+**What mosque admins can do (permissions already exist in the database):**
+- Edit mosque details (name, address, phone, email, website, facilities, languages, madhab)
+- Create, edit, and delete mosque events
+- Manage iqamah/prayer times (manual override or API-based)
 
-- **SELECT**: Authenticated users see their own submissions; admins see all
-- **INSERT**: Any authenticated user can submit (user_id must match auth.uid())
-- **UPDATE**: Platform admins only (for approval/rejection)
-- **DELETE**: Platform admins only
+**New files to create:**
 
-### New Pages
+- `src/hooks/useMosqueAdminCheck.ts` -- Hook that queries `mosque_admins` for approved claims belonging to the current user, joins with `mosques` to get mosque name/id. Returns `{ isMosqueAdmin, mosqueId, mosqueName, loading }`.
 
-1. **`/submit-event`** -- Organizer submission form (requires login)
-   - Fields: event name, organizer name, date/time, event type dropdown, audience selector (brothers only / sisters only / mixed), description, "at a mosque?" toggle with mosque search or custom location + postcode, optional image
-   - Geocodes postcode via postcodes.io
-   - Shows success confirmation after submission
+- `src/pages/MosqueDashboard.tsx` -- The mosque admin dashboard with tabbed sections:
+  - **Overview tab**: Mosque name, address, verification status
+  - **Edit Details tab**: Form to update mosque info (name, address, facilities, contact info, etc.)
+  - **Prayer Times tab**: View/edit iqamah times with the existing API toggle
+  - **Events tab**: List of mosque events with ability to create new ones, edit, or delete
 
-2. **`/admin/community-events`** -- Admin review page
-   - Filterable list by status (pending/approved/rejected)
-   - View full details, approve or reject with optional notes
+**Files to modify:**
 
-### User Flow
+- `src/components/layout/Navbar.tsx` -- Add "My Mosque" link (with Building icon) in the user dropdown menu, visible only when `useMosqueAdminCheck` returns `isMosqueAdmin: true`. Added in both desktop dropdown and mobile menu.
 
+- `src/App.tsx` -- Add `/mosque-dashboard` route pointing to the new MosqueDashboard page
+
+### Technical Details
+
+**useMosqueAdminCheck hook:**
 ```text
-Organizer visits /submit-event
-  --> Not logged in? Redirect to /auth
-  --> Fills out form (including event type + audience)
-  --> Submits (status = 'pending')
-  --> Sees: "Your event has been submitted for review"
-
-Admin visits /admin/community-events
-  --> Filters by 'pending'
-  --> Reviews details
-  --> Approves or rejects with notes
+Query: mosque_admins WHERE user_id = auth.uid() AND status = 'approved'
+Join: mosques table to get mosque name
+Returns: { isMosqueAdmin, mosqueId, mosqueName, loading }
 ```
 
-### Files to Create
+**MosqueDashboard page structure:**
+```text
+/mosque-dashboard
+  +-- Protected: redirects to / if not mosque admin
+  +-- Tabs
+       +-- Overview (read-only summary)
+       +-- Edit Details (form -> supabase update mosques)
+       +-- Prayer Times (form -> supabase update iqamah_times)
+       +-- Events (list + create/edit/delete -> supabase events table)
+```
 
-- `src/pages/SubmitEvent.tsx` -- Organizer submission form with all fields
-- `src/pages/admin/CommunityEventsList.tsx` -- Admin review/approval page
+**Navbar dropdown order for logged-in users:**
+```text
+1. Submit Event (everyone)
+2. My Mosque (mosque admins only) -- NEW
+3. Admin Dashboard (platform admins only)
+4. Sign Out
+```
 
-### Files to Modify
+### Summary of All File Changes
 
-- `src/App.tsx` -- Add `/submit-event` and `/admin/community-events` routes
-- `src/components/admin/AdminSidebar.tsx` -- Add "Community Events" nav item
-- `src/pages/admin/index.ts` -- Export new admin page
-- `src/components/layout/Navbar.tsx` -- Add "Submit Event" link for logged-in users
-
-### Database Migration
-
-- Create enums: `community_event_type`, `event_audience`
-- Create `community_events` table with all columns and foreign keys
-- Add RLS policies
-- No changes to the existing `events` table
+| Action | File | What |
+|--------|------|------|
+| Modify | `src/pages/Index.tsx` | Reorder sections |
+| Modify | `src/components/landing/MobileAppSection.tsx` | Enhanced copy, anchor id |
+| Modify | `src/components/landing/HeroSection.tsx` | Scroll-to-anchor button |
+| Create | `src/hooks/useMosqueAdminCheck.ts` | Hook for mosque admin detection |
+| Create | `src/pages/MosqueDashboard.tsx` | Full mosque management dashboard |
+| Modify | `src/components/layout/Navbar.tsx` | Add "My Mosque" nav item |
+| Modify | `src/App.tsx` | Add /mosque-dashboard route |
 
