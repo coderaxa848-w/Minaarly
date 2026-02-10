@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      community_events: {
+        Row: {
+          admin_notes: string | null
+          audience: Database["public"]["Enums"]["event_audience"]
+          category: Database["public"]["Enums"]["event_category"] | null
+          created_at: string
+          custom_location: string | null
+          description: string | null
+          end_time: string | null
+          event_date: string
+          event_type: Database["public"]["Enums"]["community_event_type"]
+          id: string
+          image_url: string | null
+          is_at_mosque: boolean
+          latitude: number | null
+          longitude: number | null
+          mosque_id: string | null
+          organizer_email: string | null
+          organizer_name: string
+          organizer_phone: string | null
+          postcode: string | null
+          start_time: string
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          audience?: Database["public"]["Enums"]["event_audience"]
+          category?: Database["public"]["Enums"]["event_category"] | null
+          created_at?: string
+          custom_location?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_date: string
+          event_type?: Database["public"]["Enums"]["community_event_type"]
+          id?: string
+          image_url?: string | null
+          is_at_mosque?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          mosque_id?: string | null
+          organizer_email?: string | null
+          organizer_name: string
+          organizer_phone?: string | null
+          postcode?: string | null
+          start_time: string
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          audience?: Database["public"]["Enums"]["event_audience"]
+          category?: Database["public"]["Enums"]["event_category"] | null
+          created_at?: string
+          custom_location?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_date?: string
+          event_type?: Database["public"]["Enums"]["community_event_type"]
+          id?: string
+          image_url?: string | null
+          is_at_mosque?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          mosque_id?: string | null
+          organizer_email?: string | null
+          organizer_name?: string
+          organizer_phone?: string | null
+          postcode?: string | null
+          start_time?: string
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_events_mosque_id_fkey"
+            columns: ["mosque_id"]
+            isOneToOne: false
+            referencedRelation: "mosques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_interests: {
         Row: {
           created_at: string | null
@@ -577,6 +663,17 @@ export type Database = {
       app_role: "admin" | "mosque_admin" | "user"
       claim_status: "pending" | "approved" | "rejected"
       claimant_role: "imam" | "committee_member" | "volunteer" | "other"
+      community_event_type:
+        | "quran"
+        | "lecture"
+        | "talk"
+        | "workshop"
+        | "fundraiser"
+        | "iftar"
+        | "community"
+        | "youth"
+        | "other"
+      event_audience: "brothers_only" | "sisters_only" | "mixed"
       event_category:
         | "halaqa"
         | "quran_class"
@@ -718,6 +815,18 @@ export const Constants = {
       app_role: ["admin", "mosque_admin", "user"],
       claim_status: ["pending", "approved", "rejected"],
       claimant_role: ["imam", "committee_member", "volunteer", "other"],
+      community_event_type: [
+        "quran",
+        "lecture",
+        "talk",
+        "workshop",
+        "fundraiser",
+        "iftar",
+        "community",
+        "youth",
+        "other",
+      ],
+      event_audience: ["brothers_only", "sisters_only", "mixed"],
       event_category: [
         "halaqa",
         "quran_class",

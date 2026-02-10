@@ -22,6 +22,7 @@ const navItems = [
   { name: 'Claims', path: '/admin/claims', icon: ClipboardList, color: 'from-amber-500 to-orange-600' },
   { name: 'Users', path: '/admin/users', icon: Users, color: 'from-blue-500 to-cyan-600' },
   { name: 'Events', path: '/admin/events', icon: Calendar, color: 'from-rose-500 to-pink-600' },
+  { name: 'Community Events', path: '/admin/community-events', icon: Sparkles, color: 'from-indigo-500 to-violet-600' },
   { name: 'Import', path: '/admin/import', icon: Upload, color: 'from-slate-500 to-slate-600' },
 ];
 
