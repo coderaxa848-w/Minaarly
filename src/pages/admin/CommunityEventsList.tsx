@@ -31,6 +31,8 @@ interface CommunityEvent {
   admin_notes: string | null;
   created_at: string;
   mosque_name?: string | null;
+  mosque_address?: string | null;
+  mosque_city?: string | null;
 }
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive'; icon: any }> = {
@@ -50,7 +52,7 @@ export default function CommunityEventsList() {
 
   const fetchEvents = async () => {
     setLoading(true);
-    let query = supabase.from('community_events' as any).select('*, mosques(name)').order('created_at', { ascending: false });
+    let query = supabase.from('community_events' as any).select('*, mosques(name, address, city)').order('created_at', { ascending: false });
     if (filter !== 'all') {
       query = query.eq('status', filter);
     }
@@ -58,7 +60,7 @@ export default function CommunityEventsList() {
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      setEvents(((data as any[]) || []).map((e: any) => ({ ...e, mosque_name: e.mosques?.name || null })));
+      setEvents(((data as any[]) || []).map((e: any) => ({ ...e, mosque_name: e.mosques?.name || null, mosque_address: e.mosques?.address || null, mosque_city: e.mosques?.city || null })));
     }
     setLoading(false);
   };
@@ -184,6 +186,9 @@ export default function CommunityEventsList() {
               <div className="border-t pt-3">
                 <span className="font-medium text-muted-foreground">Location</span>
                 <p>{selectedEvent.is_at_mosque ? (selectedEvent.mosque_name || 'At a mosque') : selectedEvent.custom_location || 'Not specified'}</p>
+                {selectedEvent.is_at_mosque && selectedEvent.mosque_address && (
+                  <p className="text-muted-foreground">{selectedEvent.mosque_address}{selectedEvent.mosque_city ? `, ${selectedEvent.mosque_city}` : ''}</p>
+                )}
                 {selectedEvent.postcode && <p className="text-muted-foreground">Postcode: {selectedEvent.postcode}</p>}
               </div>
 
