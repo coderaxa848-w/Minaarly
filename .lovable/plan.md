@@ -1,86 +1,86 @@
 
 
-## Two Changes: Prominent Mobile App Section + Mosque Admin Dashboard
+# Mosque Data Migration v4: Replace with Minaarly (1).csv
 
-### 1. Make MobileAppSection More Prominent
+## What We'll Do
 
-Since the web map has been removed and the app is the primary way to discover mosques, the MobileAppSection needs to be elevated.
+1. **Backup** your current 2,959 mosques into a safety table (`mosques_backup_20260212`)
+2. **Clean out** all current mosque data and any linked test data (events, prayer times, saved mosques, claims)
+3. **Add new database columns** for the richer fields in the new CSV (parking, wheelchair access, wudu details, Ramadan info, etc.)
+4. **Update the import tool** so it understands the new CSV format
+5. **You upload** `Minaarly (1).csv` through your admin dashboard Import page -- done!
 
-**Changes:**
-- Reorder landing page sections so MobileAppSection appears right after HeroSection
-- Add an `id="get-the-app"` anchor to MobileAppSection so the Hero "Get the App" button scrolls to it
-- Enhance the copy to position the app as THE way to use Minaarly (not supplementary)
-- Add more feature highlights: mosque search, prayer times, events, saved mosques
-
-**Files to modify:**
-- `src/pages/Index.tsx` -- Reorder: Hero, MobileApp, HowItWorks, Features, WhoItsFor, CTA
-- `src/components/landing/MobileAppSection.tsx` -- Bigger headline, stronger copy, anchor id
-- `src/components/landing/HeroSection.tsx` -- "Get the App" button scrolls to `#get-the-app`
+After this, you'll have 3,338 mosques with significantly more detail than before.
 
 ---
 
-### 2. Mosque Admin Dashboard
+## What You Gain
 
-When a user has an approved mosque claim, they get a "My Mosque" link in the navbar that takes them to a dashboard where they can manage their mosque.
+The new dataset includes fields your current data doesn't have:
 
-**What mosque admins can do (permissions already exist in the database):**
-- Edit mosque details (name, address, phone, email, website, facilities, languages, madhab)
-- Create, edit, and delete mosque events
-- Manage iqamah/prayer times (manual override or API-based)
+- Denomination and year established
+- Parking type and availability
+- Wheelchair accessibility (prayer hall, wudu, parking)
+- Wudu facility quality and women's wudu details
+- Iftar facilities
+- Tarawih and Qiyamul Layl info (great for Ramadan)
+- Pre-written descriptions and services
 
-**New files to create:**
+All your existing fields (contacts, socials, coordinates, etc.) are preserved in the new CSV.
 
-- `src/hooks/useMosqueAdminCheck.ts` -- Hook that queries `mosque_admins` for approved claims belonging to the current user, joins with `mosques` to get mosque name/id. Returns `{ isMosqueAdmin, mosqueId, mosqueName, loading }`.
+---
 
-- `src/pages/MosqueDashboard.tsx` -- The mosque admin dashboard with tabbed sections:
-  - **Overview tab**: Mosque name, address, verification status
-  - **Edit Details tab**: Form to update mosque info (name, address, facilities, contact info, etc.)
-  - **Prayer Times tab**: View/edit iqamah times with the existing API toggle
-  - **Events tab**: List of mosque events with ability to create new ones, edit, or delete
+## What Gets Deleted
 
-**Files to modify:**
+Since mosque IDs change with a fresh import, any data linked to old mosques must go:
 
-- `src/components/layout/Navbar.tsx` -- Add "My Mosque" link (with Building icon) in the user dropdown menu, visible only when `useMosqueAdminCheck` returns `isMosqueAdmin: true`. Added in both desktop dropdown and mobile menu.
+| Data | Action |
+|------|--------|
+| Current mosques (2,959) | Backed up, then removed |
+| Events (test data) | Removed |
+| Prayer times | Removed |
+| Saved mosques | Removed |
+| Mosque admin claims | Removed |
 
-- `src/App.tsx` -- Add `/mosque-dashboard` route pointing to the new MosqueDashboard page
+This is all pre-launch test data, so no real user impact.
 
-### Technical Details
+---
 
-**useMosqueAdminCheck hook:**
+## Technical Details
+
+### Database Migration (SQL)
+
+**Backup and clean:**
 ```text
-Query: mosque_admins WHERE user_id = auth.uid() AND status = 'approved'
-Join: mosques table to get mosque name
-Returns: { isMosqueAdmin, mosqueId, mosqueName, loading }
+1. CREATE TABLE mosques_backup_20260212 AS SELECT * FROM mosques
+2. DELETE from events, iqamah_times, saved_mosques, mosque_admins
+3. TRUNCATE mosques
 ```
 
-**MosqueDashboard page structure:**
+**New columns added to mosques table:**
 ```text
-/mosque-dashboard
-  +-- Protected: redirects to / if not mosque admin
-  +-- Tabs
-       +-- Overview (read-only summary)
-       +-- Edit Details (form -> supabase update mosques)
-       +-- Prayer Times (form -> supabase update iqamah_times)
-       +-- Events (list + create/edit/delete -> supabase events table)
+denomination, established, wudu_facilities, womens_wudu,
+iftar_facilities, parking_type, parking_availability,
+wheelchair_prayer_hall, wheelchair_wudu, wheelchair_parking,
+tarawih_rakah, tarawih_type, qiyamul_layl
 ```
 
-**Navbar dropdown order for logged-in users:**
-```text
-1. Submit Event (everyone)
-2. My Mosque (mosque admins only) -- NEW
-3. Admin Dashboard (platform admins only)
-4. Sign Out
-```
+### Edge Function Update
 
-### Summary of All File Changes
+Rewrite `supabase/functions/import-mosques/index.ts` to:
+- Map the new CSV column layout (different indices from v3)
+- Parse new fields (denomination, parking, wheelchair booleans, tarawih, etc.)
+- Handle "Not Available" values across all fields
+- Keep the Shia exclusion filter as a safeguard
+- Geocode any mosques missing coordinates via Postcodes.io API
 
-| Action | File | What |
-|--------|------|------|
-| Modify | `src/pages/Index.tsx` | Reorder sections |
-| Modify | `src/components/landing/MobileAppSection.tsx` | Enhanced copy, anchor id |
-| Modify | `src/components/landing/HeroSection.tsx` | Scroll-to-anchor button |
-| Create | `src/hooks/useMosqueAdminCheck.ts` | Hook for mosque admin detection |
-| Create | `src/pages/MosqueDashboard.tsx` | Full mosque management dashboard |
-| Modify | `src/components/layout/Navbar.tsx` | Add "My Mosque" nav item |
-| Modify | `src/App.tsx` | Add /mosque-dashboard route |
+### Admin Import Page Update
+
+Update `src/pages/admin/ImportMosques.tsx` to:
+- Label as "v4 format" with updated field descriptions
+- Show new fields in the preview cards
+
+### Import Flow
+
+After deployment, you go to `/admin/import`, paste or upload `Minaarly (1).csv`, and the chunked importer handles all 3,338 records (7 batches of 500).
 
