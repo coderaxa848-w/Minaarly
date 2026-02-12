@@ -210,7 +210,7 @@ export default function ImportMosques() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Import Mosques</h1>
-        <p className="text-muted-foreground">Bulk import mosques from CSV file (v3 format)</p>
+        <p className="text-muted-foreground">Bulk import mosques from CSV file (v4 format — Minaarly)</p>
       </div>
 
       {/* File Upload */}
@@ -220,7 +220,7 @@ export default function ImportMosques() {
             <Upload className="h-5 w-5" />
             Upload CSV File
           </CardTitle>
-          <CardDescription>Upload the MosquesJan26Extended_v3.csv file to import mosque data</CardDescription>
+          <CardDescription>Upload the Minaarly v4 CSV file to import mosque data (with denomination, parking, accessibility, Ramadan info)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
@@ -330,6 +330,7 @@ export default function ImportMosques() {
                         {mosque.address}, {mosque.city} {mosque.postcode}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
+                        {(mosque as any).denomination && <Badge variant="secondary">{(mosque as any).denomination}</Badge>}
                         {mosque.madhab && <Badge variant="secondary">{mosque.madhab}</Badge>}
                         {mosque.usage_type !== 'regular' && (
                           <Badge variant="outline" className="capitalize">
@@ -341,14 +342,24 @@ export default function ImportMosques() {
                             Women's Area
                           </Badge>
                         )}
-                        {mosque.is_multi_faith && (
-                          <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-200">
-                            Multi-faith
+                        {(mosque as any).wheelchair_prayer_hall && (
+                          <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-200">
+                            ♿ Accessible
                           </Badge>
                         )}
-                        {mosque.management && (
-                          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-200">
-                            {mosque.management}
+                        {(mosque as any).parking_type && (
+                          <Badge variant="outline" className="bg-sky-500/10 text-sky-600 border-sky-200">
+                            🅿️ {(mosque as any).parking_type}
+                          </Badge>
+                        )}
+                        {(mosque as any).tarawih_rakah && (mosque as any).tarawih_rakah !== 'Unknown' && (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-200">
+                            Tarawih: {(mosque as any).tarawih_rakah}
+                          </Badge>
+                        )}
+                        {(mosque as any).iftar_facilities === 'Yes' && (
+                          <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-200">
+                            🍽️ Iftar
                           </Badge>
                         )}
                         {getSocialLinksCount(mosque.social_links) > 0 && (
