@@ -291,11 +291,14 @@ export type Database = {
           contact_page: string | null
           county: string | null
           created_at: string | null
+          denomination: string | null
           description: string | null
           email: string | null
+          established: string | null
           facilities: string[] | null
           has_womens_section: boolean | null
           id: string
+          iftar_facilities: string | null
           is_multi_faith: boolean | null
           is_verified: boolean | null
           languages: string[] | null
@@ -305,14 +308,24 @@ export type Database = {
           management: string | null
           muslims_in_britain_data: boolean | null
           name: string
+          parking_availability: string | null
+          parking_type: string | null
           phone: string | null
           postcode: string
+          qiyamul_layl: string | null
           services: string[] | null
           slug: string
           social_links: Json | null
+          tarawih_rakah: string | null
+          tarawih_type: string | null
           updated_at: string | null
           usage_type: string | null
           website: string | null
+          wheelchair_parking: boolean | null
+          wheelchair_prayer_hall: boolean | null
+          wheelchair_wudu: boolean | null
+          womens_wudu: string | null
+          wudu_facilities: string | null
         }
         Insert: {
           address: string
@@ -322,11 +335,14 @@ export type Database = {
           contact_page?: string | null
           county?: string | null
           created_at?: string | null
+          denomination?: string | null
           description?: string | null
           email?: string | null
+          established?: string | null
           facilities?: string[] | null
           has_womens_section?: boolean | null
           id?: string
+          iftar_facilities?: string | null
           is_multi_faith?: boolean | null
           is_verified?: boolean | null
           languages?: string[] | null
@@ -336,14 +352,24 @@ export type Database = {
           management?: string | null
           muslims_in_britain_data?: boolean | null
           name: string
+          parking_availability?: string | null
+          parking_type?: string | null
           phone?: string | null
           postcode: string
+          qiyamul_layl?: string | null
           services?: string[] | null
           slug: string
           social_links?: Json | null
+          tarawih_rakah?: string | null
+          tarawih_type?: string | null
           updated_at?: string | null
           usage_type?: string | null
           website?: string | null
+          wheelchair_parking?: boolean | null
+          wheelchair_prayer_hall?: boolean | null
+          wheelchair_wudu?: boolean | null
+          womens_wudu?: string | null
+          wudu_facilities?: string | null
         }
         Update: {
           address?: string
@@ -353,11 +379,14 @@ export type Database = {
           contact_page?: string | null
           county?: string | null
           created_at?: string | null
+          denomination?: string | null
           description?: string | null
           email?: string | null
+          established?: string | null
           facilities?: string[] | null
           has_womens_section?: boolean | null
           id?: string
+          iftar_facilities?: string | null
           is_multi_faith?: boolean | null
           is_verified?: boolean | null
           languages?: string[] | null
@@ -367,14 +396,24 @@ export type Database = {
           management?: string | null
           muslims_in_britain_data?: boolean | null
           name?: string
+          parking_availability?: string | null
+          parking_type?: string | null
           phone?: string | null
           postcode?: string
+          qiyamul_layl?: string | null
           services?: string[] | null
           slug?: string
           social_links?: Json | null
+          tarawih_rakah?: string | null
+          tarawih_type?: string | null
           updated_at?: string | null
           usage_type?: string | null
           website?: string | null
+          wheelchair_parking?: boolean | null
+          wheelchair_prayer_hall?: boolean | null
+          wheelchair_wudu?: boolean | null
+          womens_wudu?: string | null
+          wudu_facilities?: string | null
         }
         Relationships: []
       }
@@ -443,6 +482,102 @@ export type Database = {
           postcode?: string | null
           slug?: string | null
           updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      mosques_backup_20260212: {
+        Row: {
+          address: string | null
+          background_image_url: string | null
+          capacity: number | null
+          city: string | null
+          contact_page: string | null
+          county: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          facilities: string[] | null
+          has_womens_section: boolean | null
+          id: string | null
+          is_multi_faith: boolean | null
+          is_verified: boolean | null
+          languages: string[] | null
+          latitude: number | null
+          longitude: number | null
+          madhab: string | null
+          management: string | null
+          muslims_in_britain_data: boolean | null
+          name: string | null
+          phone: string | null
+          postcode: string | null
+          services: string[] | null
+          slug: string | null
+          social_links: Json | null
+          updated_at: string | null
+          usage_type: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          background_image_url?: string | null
+          capacity?: number | null
+          city?: string | null
+          contact_page?: string | null
+          county?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          facilities?: string[] | null
+          has_womens_section?: boolean | null
+          id?: string | null
+          is_multi_faith?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          madhab?: string | null
+          management?: string | null
+          muslims_in_britain_data?: boolean | null
+          name?: string | null
+          phone?: string | null
+          postcode?: string | null
+          services?: string[] | null
+          slug?: string | null
+          social_links?: Json | null
+          updated_at?: string | null
+          usage_type?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          background_image_url?: string | null
+          capacity?: number | null
+          city?: string | null
+          contact_page?: string | null
+          county?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          facilities?: string[] | null
+          has_womens_section?: boolean | null
+          id?: string | null
+          is_multi_faith?: boolean | null
+          is_verified?: boolean | null
+          languages?: string[] | null
+          latitude?: number | null
+          longitude?: number | null
+          madhab?: string | null
+          management?: string | null
+          muslims_in_britain_data?: boolean | null
+          name?: string | null
+          phone?: string | null
+          postcode?: string | null
+          services?: string[] | null
+          slug?: string | null
+          social_links?: Json | null
+          updated_at?: string | null
+          usage_type?: string | null
           website?: string | null
         }
         Relationships: []
@@ -546,11 +681,14 @@ export type Database = {
           contact_page: string | null
           county: string | null
           created_at: string | null
+          denomination: string | null
           description: string | null
           email: string | null
+          established: string | null
           facilities: string[] | null
           has_womens_section: boolean | null
           id: string
+          iftar_facilities: string | null
           is_multi_faith: boolean | null
           is_verified: boolean | null
           languages: string[] | null
@@ -560,14 +698,24 @@ export type Database = {
           management: string | null
           muslims_in_britain_data: boolean | null
           name: string
+          parking_availability: string | null
+          parking_type: string | null
           phone: string | null
           postcode: string
+          qiyamul_layl: string | null
           services: string[] | null
           slug: string
           social_links: Json | null
+          tarawih_rakah: string | null
+          tarawih_type: string | null
           updated_at: string | null
           usage_type: string | null
           website: string | null
+          wheelchair_parking: boolean | null
+          wheelchair_prayer_hall: boolean | null
+          wheelchair_wudu: boolean | null
+          womens_wudu: string | null
+          wudu_facilities: string | null
         }[]
         SetofOptions: {
           from: "*"
@@ -628,11 +776,14 @@ export type Database = {
           contact_page: string | null
           county: string | null
           created_at: string | null
+          denomination: string | null
           description: string | null
           email: string | null
+          established: string | null
           facilities: string[] | null
           has_womens_section: boolean | null
           id: string
+          iftar_facilities: string | null
           is_multi_faith: boolean | null
           is_verified: boolean | null
           languages: string[] | null
@@ -642,14 +793,24 @@ export type Database = {
           management: string | null
           muslims_in_britain_data: boolean | null
           name: string
+          parking_availability: string | null
+          parking_type: string | null
           phone: string | null
           postcode: string
+          qiyamul_layl: string | null
           services: string[] | null
           slug: string
           social_links: Json | null
+          tarawih_rakah: string | null
+          tarawih_type: string | null
           updated_at: string | null
           usage_type: string | null
           website: string | null
+          wheelchair_parking: boolean | null
+          wheelchair_prayer_hall: boolean | null
+          wheelchair_wudu: boolean | null
+          womens_wudu: string | null
+          wudu_facilities: string | null
         }[]
         SetofOptions: {
           from: "*"
