@@ -1,86 +1,132 @@
 
 
-# Mosque Data Migration v4: Replace with Minaarly (1).csv
+# Event Organiser System
 
-## What We'll Do
+## Overview
 
-1. **Backup** your current 2,959 mosques into a safety table (`mosques_backup_20260212`)
-2. **Clean out** all current mosque data and any linked test data (events, prayer times, saved mosques, claims)
-3. **Add new database columns** for the richer fields in the new CSV (parking, wheelchair access, wudu details, Ramadan info, etc.)
-4. **Update the import tool** so it understands the new CSV format
-5. **You upload** `Minaarly (1).csv` through your admin dashboard Import page -- done!
+Add a verified "Event Organiser" tier so trusted users can post community events without waiting for manual approval, while regular users remain limited to 1 submission per week.
 
-After this, you'll have 3,338 mosques with significantly more detail than before.
+## How It Works
 
----
+**Regular users:**
+- Can submit 1 community event per week (rolling 7-day window)
+- Events go through the existing admin approval queue
+- If they hit the limit, they see a message encouraging them to apply as an Event Organiser
 
-## What You Gain
+**Event Organisers (verified):**
+- Events are auto-approved on submission but still logged in the admin panel
+- Unlimited submissions
+- Their organiser profile (bio, org type, social links) appears on their events
+- Must apply and be approved by a platform admin first
 
-The new dataset includes fields your current data doesn't have:
+**Platform admins:**
+- Review organiser applications (approve/reject) from the admin dashboard
+- Can still see and revoke auto-approved events
+- Can revoke organiser status at any time
 
-- Denomination and year established
-- Parking type and availability
-- Wheelchair accessibility (prayer hall, wudu, parking)
-- Wudu facility quality and women's wudu details
-- Iftar facilities
-- Tarawih and Qiyamul Layl info (great for Ramadan)
-- Pre-written descriptions and services
+## What Gets Built
 
-All your existing fields (contacts, socials, coordinates, etc.) are preserved in the new CSV.
+### 1. Database Changes
 
----
+**Add `event_organizer` to the `app_role` enum:**
 
-## What Gets Deleted
+```text
+ALTER TYPE app_role ADD VALUE 'event_organizer';
+```
 
-Since mosque IDs change with a fresh import, any data linked to old mosques must go:
+**New table: `event_organizer_profiles`**
 
-| Data | Action |
-|------|--------|
-| Current mosques (2,959) | Backed up, then removed |
-| Events (test data) | Removed |
-| Prayer times | Removed |
-| Saved mosques | Removed |
-| Mosque admin claims | Removed |
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid (PK) | Auto-generated |
+| user_id | uuid (unique) | References auth.users |
+| display_name | text | Public-facing name |
+| org_type | text | 'individual' or 'company' |
+| bio | text | Short description of themselves/org |
+| social_instagram | text | Instagram handle or URL |
+| social_twitter | text | Twitter/X handle or URL |
+| social_website | text | Website URL |
+| status | text | 'pending', 'approved', 'rejected' |
+| admin_notes | text | Internal notes from reviewer |
+| created_at | timestamptz | Submission timestamp |
+| updated_at | timestamptz | Last update |
 
-This is all pre-launch test data, so no real user impact.
+RLS policies:
+- Users can view their own profile
+- Users can insert their own application (once)
+- Platform admins can view and update all
+- Public can view approved profiles (for display on events)
 
----
+**New DB function: `is_event_organizer(user_id)`**
+
+Returns true if user has an approved organiser profile AND the `event_organizer` role. Used in RLS policies.
+
+**New DB function: `can_submit_community_event(user_id)`**
+
+Returns true if:
+- User has `event_organizer` role, OR
+- User has submitted fewer than 1 community event in the last 7 days
+
+### 2. Update Community Events Flow
+
+**SubmitEvent page (`src/pages/SubmitEvent.tsx`):**
+- On load, check if user is an event organiser or has hit their weekly limit
+- If organiser: show normal form, auto-set status to 'approved' on insert
+- If regular user within limit: show normal form (status stays 'pending')
+- If regular user at limit: show a friendly block message with a link to apply as an organiser
+
+**RLS policy update on `community_events`:**
+- Add policy allowing event organisers to insert with status='approved'
+
+### 3. Organiser Application Page
+
+**New page: `/become-organiser`**
+
+A clean form collecting:
+- Display name (pre-filled from profile)
+- Organisation type: Individual or Company/Charity (radio buttons)
+- Bio/about (textarea, max 500 chars)
+- Social links: Instagram, Twitter/X, Website (all optional)
+
+After submission, show a confirmation message that the application is under review.
+
+### 4. Admin: Organiser Applications Panel
+
+**New admin page: `/admin/organisers`**
+
+- List all organiser applications with status filter (pending/approved/rejected)
+- View detail dialog with all submitted info
+- Approve (grants `event_organizer` role in `user_roles` + updates profile status) or Reject with optional admin notes
+
+**Add to admin sidebar navigation.**
+
+### 5. Display Organiser Info on Events
+
+When viewing a community event created by an event organiser, show their:
+- Display name
+- Bio snippet
+- Social links (as clickable icons)
+
+This appears in the event detail view and the community events feed.
 
 ## Technical Details
 
-### Database Migration (SQL)
+### Files to Create
+- `src/pages/BecomeOrganiser.tsx` -- application form
+- `src/pages/admin/OrganisersList.tsx` -- admin review panel
 
-**Backup and clean:**
-```text
-1. CREATE TABLE mosques_backup_20260212 AS SELECT * FROM mosques
-2. DELETE from events, iqamah_times, saved_mosques, mosque_admins
-3. TRUNCATE mosques
-```
+### Files to Modify
+- `supabase/migrations/` -- new migration for enum, table, functions, RLS
+- `src/pages/SubmitEvent.tsx` -- rate limit check, auto-approve logic
+- `src/pages/admin/CommunityEventsList.tsx` -- show organiser badge on auto-approved events
+- `src/components/admin/AdminSidebar.tsx` -- add "Organisers" nav link
+- `src/App.tsx` -- add routes for `/become-organiser` and `/admin/organisers`
+- `src/integrations/supabase/types.ts` -- auto-updated after migration
 
-**New columns added to mosques table:**
-```text
-denomination, established, wudu_facilities, womens_wudu,
-iftar_facilities, parking_type, parking_availability,
-wheelchair_prayer_hall, wheelchair_wudu, wheelchair_parking,
-tarawih_rakah, tarawih_type, qiyamul_layl
-```
-
-### Edge Function Update
-
-Rewrite `supabase/functions/import-mosques/index.ts` to:
-- Map the new CSV column layout (different indices from v3)
-- Parse new fields (denomination, parking, wheelchair booleans, tarawih, etc.)
-- Handle "Not Available" values across all fields
-- Keep the Shia exclusion filter as a safeguard
-- Geocode any mosques missing coordinates via Postcodes.io API
-
-### Admin Import Page Update
-
-Update `src/pages/admin/ImportMosques.tsx` to:
-- Label as "v4 format" with updated field descriptions
-- Show new fields in the preview cards
-
-### Import Flow
-
-After deployment, you go to `/admin/import`, paste or upload `Minaarly (1).csv`, and the chunked importer handles all 3,338 records (7 batches of 500).
+### Implementation Order
+1. Database migration (enum, table, functions, RLS policies)
+2. Organiser application page (`/become-organiser`)
+3. Admin organiser review panel (`/admin/organisers`)
+4. Update SubmitEvent with rate limiting and auto-approve
+5. Display organiser info on events
 
