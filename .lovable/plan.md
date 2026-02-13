@@ -1,48 +1,16 @@
 
 
-# Consolidate Women's Section Data
+# Fix: Auto-Approved Organiser Events Not Visible in Admin
 
-## Goal
-Remove the redundant `has_womens_section` boolean column and use `womens_area` from the `facilities` array as the single source of truth.
+## Problem
+When an event organiser submits an event, it is automatically approved (`status = 'approved'`). However, the admin Community Events page defaults its filter to "Pending", so these auto-approved events are hidden from view. The events exist correctly in the database -- they are just filtered out.
 
-## Why This Is Safe
-Every mosque with `has_womens_section = true` already has `womens_area` in its facilities array. No data will be lost.
+## Solution
+Change the default filter from "pending" to "all" in the Community Events admin page so admins see everything by default.
 
-## Changes
+## Technical Detail
+**File:** `src/pages/admin/CommunityEventsList.tsx`
+- Line 48: Change `useState('pending')` to `useState('all')`
 
-### 1. Database Migration
-- Drop the `has_womens_section` column from the `mosques` table
-- No data migration needed since `womens_area` already exists in facilities for all relevant mosques
-
-### 2. MosqueDashboard.tsx (mosque admin edit form)
-- Remove the `has_womens_section` toggle switch
-- Replace it with a `womens_area` checkbox/toggle that adds/removes it from the `facilities` array (or rely on the existing facilities editing if one exists)
-- Remove `has_womens_section` from the save/update call
-
-### 3. MosqueDetail.tsx (public detail page)
-- Add a "Sisters" badge in the hero section, driven by checking `facilities?.includes('womens_area')`
-- The facilities grid already shows it, so this adds the prominent badge without duplication concerns (badge = highlight, grid = full list)
-
-### 4. import-mosques edge function
-- Remove `has_womens_section` from the `MosqueImport` interface
-- Remove it from the insert payload
-- Keep the logic that adds `womens_area` to the facilities array (already there)
-
-### 5. ImportMosques.tsx (admin import preview)
-- Change the "Women's Area" badge to check `facilities.includes('womens_area')` instead of `has_womens_section`
-
-### 6. MosqueForm.tsx (admin mosque form)
-- Already has `womens_section` in its facilities list -- rename to `womens_area` for consistency with the imported data
-
-## Files to Modify
-- SQL migration to drop the column
-- `src/pages/MosqueDashboard.tsx` -- remove toggle, update save logic
-- `src/pages/MosqueDetail.tsx` -- add Sisters badge from facilities
-- `src/pages/admin/ImportMosques.tsx` -- use facilities check
-- `src/pages/admin/MosqueForm.tsx` -- rename facility value
-- `supabase/functions/import-mosques/index.ts` -- remove from interface and insert
-
-## Implementation Order
-1. Database migration (drop column)
-2. Update all code references in a single pass
+This is a single-line fix. All 10 community events in the database (including your test events) will immediately become visible when the page loads.
 
