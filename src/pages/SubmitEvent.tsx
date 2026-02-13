@@ -12,24 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, MapPin, CheckCircle2, Loader2 } from 'lucide-react';
 
-const EVENT_TYPES = [
-  { value: 'quran', label: 'Quran' },
-  { value: 'lecture', label: 'Lecture' },
-  { value: 'talk', label: 'Talk' },
-  { value: 'workshop', label: 'Workshop' },
-  { value: 'fundraiser', label: 'Fundraiser' },
-  { value: 'iftar', label: 'Iftar' },
-  { value: 'community', label: 'Community' },
-  { value: 'youth', label: 'Youth' },
-  { value: 'other', label: 'Other' },
-];
-
-const AUDIENCE_OPTIONS = [
-  { value: 'mixed', label: 'Mixed (Everyone)' },
-  { value: 'brothers_only', label: 'Brothers Only' },
-  { value: 'sisters_only', label: 'Sisters Only' },
-];
-
 const CATEGORIES = [
   { value: 'halaqa', label: 'Halaqa' },
   { value: 'quran_class', label: 'Quran Class' },
@@ -41,6 +23,12 @@ const CATEGORIES = [
   { value: 'fundraiser', label: 'Fundraiser' },
   { value: 'iftar', label: 'Iftar' },
   { value: 'other', label: 'Other' },
+];
+
+const AUDIENCE_OPTIONS = [
+  { value: 'mixed', label: 'Mixed (Everyone)' },
+  { value: 'brothers_only', label: 'Brothers Only' },
+  { value: 'sisters_only', label: 'Sisters Only' },
 ];
 
 export default function SubmitEvent() {
@@ -67,7 +55,6 @@ export default function SubmitEvent() {
     event_date: '',
     start_time: '',
     end_time: '',
-    event_type: 'other' as string,
     audience: 'mixed' as string,
     category: 'other' as string,
     mosque_id: '',
@@ -86,12 +73,10 @@ export default function SubmitEvent() {
     if (!user) return;
     const checkEligibility = async () => {
       setCheckingEligibility(true);
-      // Check if event organiser
       const { data: orgData } = await supabase.rpc('is_event_organizer', { _user_id: user.id });
       setIsOrganiser(!!orgData);
 
       if (!orgData) {
-        // Check rate limit
         const { data: canSubmitData } = await supabase.rpc('can_submit_community_event', { _user_id: user.id });
         setCanSubmit(!!canSubmitData);
       }
@@ -102,10 +87,7 @@ export default function SubmitEvent() {
 
   useEffect(() => {
     if (user) {
-      setForm(f => ({
-        ...f,
-        organizer_email: user.email || '',
-      }));
+      setForm(f => ({ ...f, organizer_email: user.email || '' }));
     }
   }, [user]);
 
@@ -157,46 +139,27 @@ export default function SubmitEvent() {
         }
       }
 
-      const insertData = {
-        user_id: user.id,
+      const { error } = await supabase.from('events').insert({
         title: form.title,
-        organizer_name: form.organizer_name,
-        organizer_email: form.organizer_email || null,
-        organizer_phone: form.organizer_phone || null,
         description: form.description || null,
         event_date: form.event_date,
         start_time: form.start_time,
         end_time: form.end_time || null,
-        event_type: form.event_type,
+        category: (form.category || 'other') as any,
         audience: form.audience,
-        category: form.category,
-        is_at_mosque: isAtMosque,
         mosque_id: isAtMosque && form.mosque_id ? form.mosque_id : null,
         custom_location: !isAtMosque ? form.custom_location || null : null,
         postcode: form.postcode || null,
         latitude,
         longitude,
+        organizer_name: form.organizer_name,
+        organizer_email: form.organizer_email || null,
+        organizer_phone: form.organizer_phone || null,
+        submitted_by: user.id,
+        source: isOrganiser ? 'community_organiser' : 'user',
         status: isOrganiser ? 'approved' : 'pending',
-      } as any;
-
-      const { error } = await supabase.from('community_events' as any).insert(insertData);
+      } as any);
       if (error) throw error;
-
-      // If auto-approved organiser event at a mosque, also add to the events table
-      if (isOrganiser && isAtMosque && form.mosque_id) {
-        const { error: eventError } = await supabase.from('events').insert({
-          mosque_id: form.mosque_id,
-          title: form.title,
-          description: form.description || null,
-          event_date: form.event_date,
-          start_time: form.start_time,
-          end_time: form.end_time || null,
-          category: form.category || 'other',
-        } as any);
-        if (eventError) {
-          console.error('Failed to create mosque event:', eventError);
-        }
-      }
 
       setSubmitted(true);
     } catch (err: any) {
@@ -254,7 +217,7 @@ export default function SubmitEvent() {
               : 'Your event has been submitted for review. Our team will review it and you\'ll be notified once it\'s approved.'}
           </p>
           <div className="flex gap-3">
-            <Button onClick={() => { setSubmitted(false); setForm({ title: '', organizer_name: '', organizer_email: user?.email || '', organizer_phone: '', description: '', event_date: '', start_time: '', end_time: '', event_type: 'other', audience: 'mixed', category: 'other', mosque_id: '', custom_location: '', postcode: '' }); }}>
+            <Button onClick={() => { setSubmitted(false); setForm({ title: '', organizer_name: '', organizer_email: user?.email || '', organizer_phone: '', description: '', event_date: '', start_time: '', end_time: '', audience: 'mixed', category: 'other', mosque_id: '', custom_location: '', postcode: '' }); }}>
               Submit Another Event
             </Button>
             <Button variant="outline" onClick={() => navigate('/')}>
@@ -288,11 +251,11 @@ export default function SubmitEvent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="event_type">Event Type *</Label>
-                <Select value={form.event_type} onValueChange={v => setForm(f => ({ ...f, event_type: v }))}>
+                <Label htmlFor="category">Category *</Label>
+                <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {EVENT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -305,16 +268,6 @@ export default function SubmitEvent() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
             </div>
 
             <div>
