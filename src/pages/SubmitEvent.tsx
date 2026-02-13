@@ -54,6 +54,9 @@ export default function SubmitEvent() {
   const [mosqueSearch, setMosqueSearch] = useState('');
   const [mosqueResults, setMosqueResults] = useState<{ id: string; name: string; address: string }[]>([]);
   const [searchingMosques, setSearchingMosques] = useState(false);
+  const [isOrganiser, setIsOrganiser] = useState(false);
+  const [canSubmit, setCanSubmit] = useState(true);
+  const [checkingEligibility, setCheckingEligibility] = useState(true);
 
   const [form, setForm] = useState({
     title: '',
@@ -77,6 +80,25 @@ export default function SubmitEvent() {
       navigate('/auth', { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  // Check organiser status and rate limit
+  useEffect(() => {
+    if (!user) return;
+    const checkEligibility = async () => {
+      setCheckingEligibility(true);
+      // Check if event organiser
+      const { data: orgData } = await supabase.rpc('is_event_organizer', { _user_id: user.id });
+      setIsOrganiser(!!orgData);
+
+      if (!orgData) {
+        // Check rate limit
+        const { data: canSubmitData } = await supabase.rpc('can_submit_community_event', { _user_id: user.id });
+        setCanSubmit(!!canSubmitData);
+      }
+      setCheckingEligibility(false);
+    };
+    checkEligibility();
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -154,6 +176,7 @@ export default function SubmitEvent() {
         postcode: form.postcode || null,
         latitude,
         longitude,
+        status: isOrganiser ? 'approved' : 'pending',
       } as any);
 
       if (error) throw error;
@@ -169,11 +192,31 @@ export default function SubmitEvent() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || checkingEligibility) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!canSubmit && !isOrganiser) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
+            <Clock className="h-8 w-8 text-destructive" />
+          </div>
+          <h1 className="text-3xl font-bold mb-3">Weekly Limit Reached</h1>
+          <p className="text-muted-foreground max-w-md mb-6">
+            You can submit 1 community event per week. You've already submitted one recently. Try again next week, or become a verified Event Organiser for unlimited submissions.
+          </p>
+          <div className="flex gap-3">
+            <Button onClick={() => navigate('/become-organiser')}>Become an Event Organiser</Button>
+            <Button variant="outline" onClick={() => navigate('/')}>Go Home</Button>
+          </div>
         </div>
       </Layout>
     );
@@ -186,9 +229,11 @@ export default function SubmitEvent() {
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
             <CheckCircle2 className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold mb-3">Event Submitted!</h1>
+          <h1 className="text-3xl font-bold mb-3">{isOrganiser ? 'Event Published!' : 'Event Submitted!'}</h1>
           <p className="text-muted-foreground max-w-md mb-6">
-            Your event has been submitted for review. Our team will review it and you'll be notified once it's approved.
+            {isOrganiser
+              ? 'Your event is now live and visible to everyone.'
+              : 'Your event has been submitted for review. Our team will review it and you\'ll be notified once it\'s approved.'}
           </p>
           <div className="flex gap-3">
             <Button onClick={() => { setSubmitted(false); setForm({ title: '', organizer_name: '', organizer_email: user?.email || '', organizer_phone: '', description: '', event_date: '', start_time: '', end_time: '', event_type: 'other', audience: 'mixed', category: 'other', mosque_id: '', custom_location: '', postcode: '' }); }}>
@@ -344,7 +389,7 @@ export default function SubmitEvent() {
           </div>
 
           <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-            {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</> : 'Submit Event for Review'}
+            {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Submitting...</> : isOrganiser ? 'Publish Event' : 'Submit Event for Review'}
           </Button>
         </form>
       </div>
