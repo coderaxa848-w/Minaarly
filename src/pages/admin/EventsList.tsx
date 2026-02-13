@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-interface Event {
+interface UnifiedEvent {
   id: string;
   title: string;
   description: string | null;
@@ -15,15 +15,14 @@ interface Event {
   category: string | null;
   guest_speaker: string | null;
   is_archived: boolean | null;
-  mosque: {
-    name: string;
-    city: string;
-  } | null;
+  location_name: string | null;
+  location_city: string | null;
   interested_count: number;
+  is_community: boolean;
 }
 
 export default function EventsList() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<UnifiedEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,32 +32,73 @@ export default function EventsList() {
   async function fetchEvents() {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch mosque events
+      const { data: mosqueEvents, error: mosqueError } = await supabase
         .from('events')
-        .select(`
-          *,
-          mosques (name, city)
-        `)
+        .select(`*, mosques (name, city)`)
         .order('event_date', { ascending: true })
         .limit(100);
 
-      if (error) throw error;
+      if (mosqueError) throw mosqueError;
 
-      // Get interested counts for each event
-      const eventsWithCounts = await Promise.all(
-        (data || []).map(async (event: any) => {
+      // Fetch approved non-mosque community events
+      const { data: communityEvents, error: communityError } = await supabase
+        .from('community_events')
+        .select('*')
+        .eq('status', 'approved')
+        .eq('is_at_mosque', false)
+        .order('event_date', { ascending: true })
+        .limit(100);
+
+      if (communityError) throw communityError;
+
+      // Get interested counts for mosque events
+      const mosqueWithCounts = await Promise.all(
+        (mosqueEvents || []).map(async (event: any) => {
           const { data: countData } = await supabase.rpc('get_event_interested_count', {
             _event_id: event.id,
           });
           return {
-            ...event,
-            mosque: event.mosques,
+            id: event.id,
+            title: event.title,
+            description: event.description,
+            event_date: event.event_date,
+            start_time: event.start_time,
+            end_time: event.end_time,
+            category: event.category,
+            guest_speaker: event.guest_speaker,
+            is_archived: event.is_archived,
+            location_name: event.mosques?.name || null,
+            location_city: event.mosques?.city || null,
             interested_count: countData || 0,
-          };
+            is_community: false,
+          } as UnifiedEvent;
         })
       );
 
-      setEvents(eventsWithCounts);
+      // Map community events
+      const communityMapped: UnifiedEvent[] = (communityEvents || []).map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        event_date: event.event_date,
+        start_time: event.start_time,
+        end_time: event.end_time,
+        category: event.category,
+        guest_speaker: null,
+        is_archived: false,
+        location_name: event.custom_location || event.postcode || 'Custom Location',
+        location_city: null,
+        interested_count: 0,
+        is_community: true,
+      }));
+
+      // Merge and sort by date
+      const allEvents = [...mosqueWithCounts, ...communityMapped].sort(
+        (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
+      );
+
+      setEvents(allEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
       toast({
@@ -108,6 +148,64 @@ export default function EventsList() {
     }
   }
 
+  function renderEventCard(event: UnifiedEvent) {
+    return (
+      <Card key={event.id}>
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg">{event.title}</CardTitle>
+                {event.is_community && (
+                  <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200">
+                    Community
+                  </Badge>
+                )}
+              </div>
+              <CardDescription className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {event.location_name}
+                {event.location_city && `, ${event.location_city}`}
+              </CardDescription>
+            </div>
+            <Badge className={getCategoryColor(event.category)}>
+              {event.category || 'other'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              {formatDate(event.event_date)}
+            </div>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              {formatTime(event.start_time)}
+              {event.end_time && ` - ${formatTime(event.end_time)}`}
+            </div>
+            {!event.is_community && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Users className="h-4 w-4" />
+                {event.interested_count} interested
+              </div>
+            )}
+          </div>
+          {event.description && (
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+              {event.description}
+            </p>
+          )}
+          {event.guest_speaker && (
+            <p className="mt-2 text-sm">
+              <span className="font-medium">Speaker:</span> {event.guest_speaker}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (loading) {
     return (
       <div className="p-6 space-y-4">
@@ -124,15 +222,13 @@ export default function EventsList() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Events</h1>
         <p className="text-muted-foreground">
-          View all mosque events ({events.length} total, {upcomingEvents.length} upcoming)
+          View all events ({events.length} total, {upcomingEvents.length} upcoming)
         </p>
       </div>
 
-      {/* Upcoming Events */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Upcoming Events</h2>
         {upcomingEvents.length === 0 ? (
@@ -144,56 +240,11 @@ export default function EventsList() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {upcomingEvents.map((event) => (
-              <Card key={event.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{event.title}</CardTitle>
-                      <CardDescription className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {event.mosque?.name}, {event.mosque?.city}
-                      </CardDescription>
-                    </div>
-                    <Badge className={getCategoryColor(event.category)}>
-                      {event.category || 'other'}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      {formatDate(event.event_date)}
-                    </div>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      {formatTime(event.start_time)}
-                      {event.end_time && ` - ${formatTime(event.end_time)}`}
-                    </div>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      {event.interested_count} interested
-                    </div>
-                  </div>
-                  {event.description && (
-                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                      {event.description}
-                    </p>
-                  )}
-                  {event.guest_speaker && (
-                    <p className="mt-2 text-sm">
-                      <span className="font-medium">Speaker:</span> {event.guest_speaker}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            {upcomingEvents.map(renderEventCard)}
           </div>
         )}
       </div>
 
-      {/* Past Events */}
       {pastEvents.length > 0 && (
         <div>
           <h2 className="text-xl font-semibold mb-4 text-muted-foreground">Past Events</h2>
@@ -203,10 +254,18 @@ export default function EventsList() {
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-lg">{event.title}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">{event.title}</CardTitle>
+                        {event.is_community && (
+                          <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200">
+                            Community
+                          </Badge>
+                        )}
+                      </div>
                       <CardDescription className="flex items-center gap-1">
                         <MapPin className="h-3 w-3" />
-                        {event.mosque?.name}, {event.mosque?.city}
+                        {event.location_name}
+                        {event.location_city && `, ${event.location_city}`}
                       </CardDescription>
                     </div>
                     <Badge variant="secondary">{formatDate(event.event_date)}</Badge>
