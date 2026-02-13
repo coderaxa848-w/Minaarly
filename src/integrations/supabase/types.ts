@@ -192,11 +192,13 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           mosque_id: string | null
+          online_link: string | null
           organizer_email: string | null
           organizer_name: string | null
           organizer_phone: string | null
           postcode: string | null
           source: string | null
+          speaker: string | null
           start_time: string
           status: string | null
           submitted_by: string | null
@@ -220,11 +222,13 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           mosque_id?: string | null
+          online_link?: string | null
           organizer_email?: string | null
           organizer_name?: string | null
           organizer_phone?: string | null
           postcode?: string | null
           source?: string | null
+          speaker?: string | null
           start_time: string
           status?: string | null
           submitted_by?: string | null
@@ -248,11 +252,13 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           mosque_id?: string | null
+          online_link?: string | null
           organizer_email?: string | null
           organizer_name?: string | null
           organizer_phone?: string | null
           postcode?: string | null
           source?: string | null
+          speaker?: string | null
           start_time?: string
           status?: string | null
           submitted_by?: string | null
