@@ -45,7 +45,7 @@ export default function CommunityEventsList() {
   const { toast } = useToast();
   const [events, setEvents] = useState<CommunityEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('pending');
+  const [filter, setFilter] = useState('all');
   const [selectedEvent, setSelectedEvent] = useState<CommunityEvent | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [updating, setUpdating] = useState(false);
