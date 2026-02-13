@@ -92,7 +92,7 @@ export function AdminSidebar({ collapsed = false, onToggle }: AdminSidebarProps)
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-6 px-3 space-y-1.5 relative">
+      <nav className="flex-1 py-6 px-3 space-y-1.5 relative overflow-y-auto">
         {!collapsed && (
           <div className="px-3 mb-4">
             <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Navigation</span>
