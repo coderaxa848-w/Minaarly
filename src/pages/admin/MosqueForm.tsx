@@ -18,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 const FACILITIES = [
-  'parking', 'wheelchair_access', 'wudu_facilities', 'womens_section',
+  'parking', 'wheelchair_access', 'wudu_facilities', 'womens_area',
   'funeral_services', 'marriage_services', 'quran_classes', 'islamic_school',
   'library', 'community_hall', 'youth_activities', 'sisters_circle'
 ];
