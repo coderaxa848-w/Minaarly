@@ -176,8 +176,11 @@ export type Database = {
       }
       events: {
         Row: {
+          admin_notes: string | null
+          audience: string | null
           category: Database["public"]["Enums"]["event_category"] | null
           created_at: string | null
+          custom_location: string | null
           description: string | null
           end_time: string | null
           event_date: string
@@ -186,14 +189,26 @@ export type Database = {
           image_url: string | null
           is_archived: boolean | null
           is_recurring: boolean | null
-          mosque_id: string
+          latitude: number | null
+          longitude: number | null
+          mosque_id: string | null
+          organizer_email: string | null
+          organizer_name: string | null
+          organizer_phone: string | null
+          postcode: string | null
+          source: string | null
           start_time: string
+          status: string | null
+          submitted_by: string | null
           title: string
           topic: string | null
         }
         Insert: {
+          admin_notes?: string | null
+          audience?: string | null
           category?: Database["public"]["Enums"]["event_category"] | null
           created_at?: string | null
+          custom_location?: string | null
           description?: string | null
           end_time?: string | null
           event_date: string
@@ -202,14 +217,26 @@ export type Database = {
           image_url?: string | null
           is_archived?: boolean | null
           is_recurring?: boolean | null
-          mosque_id: string
+          latitude?: number | null
+          longitude?: number | null
+          mosque_id?: string | null
+          organizer_email?: string | null
+          organizer_name?: string | null
+          organizer_phone?: string | null
+          postcode?: string | null
+          source?: string | null
           start_time: string
+          status?: string | null
+          submitted_by?: string | null
           title: string
           topic?: string | null
         }
         Update: {
+          admin_notes?: string | null
+          audience?: string | null
           category?: Database["public"]["Enums"]["event_category"] | null
           created_at?: string | null
+          custom_location?: string | null
           description?: string | null
           end_time?: string | null
           event_date?: string
@@ -218,8 +245,17 @@ export type Database = {
           image_url?: string | null
           is_archived?: boolean | null
           is_recurring?: boolean | null
-          mosque_id?: string
+          latitude?: number | null
+          longitude?: number | null
+          mosque_id?: string | null
+          organizer_email?: string | null
+          organizer_name?: string | null
+          organizer_phone?: string | null
+          postcode?: string | null
+          source?: string | null
           start_time?: string
+          status?: string | null
+          submitted_by?: string | null
           title?: string
           topic?: string | null
         }
