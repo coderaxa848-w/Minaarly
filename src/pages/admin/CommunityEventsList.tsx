@@ -3,10 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, XCircle, Clock, Eye, Loader2, Calendar, MapPin, Users } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Eye, Loader2, Calendar, MapPin, Users, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 
 interface CommunityEvent {
@@ -35,37 +36,37 @@ interface CommunityEvent {
   mosque_city?: string | null;
 }
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive'; icon: any }> = {
-  pending: { label: 'Pending', variant: 'secondary', icon: Clock },
-  approved: { label: 'Approved', variant: 'default', icon: CheckCircle2 },
-  rejected: { label: 'Rejected', variant: 'destructive', icon: XCircle },
-};
-
 export default function CommunityEventsList() {
   const { toast } = useToast();
   const [events, setEvents] = useState<CommunityEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('pending');
+  const [activeTab, setActiveTab] = useState('pending');
   const [selectedEvent, setSelectedEvent] = useState<CommunityEvent | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [updating, setUpdating] = useState(false);
 
   const fetchEvents = async () => {
     setLoading(true);
-    let query = supabase.from('community_events' as any).select('*, mosques(name, address, city)').order('created_at', { ascending: false });
-    if (filter !== 'all') {
-      query = query.eq('status', filter);
-    }
-    const { data, error } = await query;
+    const { data, error } = await supabase
+      .from('community_events' as any)
+      .select('*, mosques(name, address, city)')
+      .order('created_at', { ascending: false });
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      setEvents(((data as any[]) || []).map((e: any) => ({ ...e, mosque_name: e.mosques?.name || null, mosque_address: e.mosques?.address || null, mosque_city: e.mosques?.city || null })));
+      setEvents(((data as any[]) || []).map((e: any) => ({
+        ...e,
+        mosque_name: e.mosques?.name || null,
+        mosque_address: e.mosques?.address || null,
+        mosque_city: e.mosques?.city || null,
+      })));
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchEvents(); }, [filter]);
+  useEffect(() => { fetchEvents(); }, []);
+
+  const filteredEvents = events.filter(e => e.status === activeTab);
 
   const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
     setUpdating(true);
@@ -73,7 +74,6 @@ export default function CommunityEventsList() {
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      // If approved and linked to a mosque, create a mosque event
       if (status === 'approved' && selectedEvent?.is_at_mosque && selectedEvent?.mosque_id) {
         const { error: eventError } = await supabase.from('events').insert({
           mosque_id: selectedEvent.mosque_id,
@@ -85,7 +85,6 @@ export default function CommunityEventsList() {
           category: selectedEvent.category || 'other',
         } as any);
         if (eventError) {
-          console.error('Failed to create mosque event:', eventError);
           toast({ title: 'Partial success', description: `Event approved but failed to add to mosque events: ${eventError.message}`, variant: 'destructive' });
         } else {
           toast({ title: 'Event approved', description: 'Event approved and added to the mosque\'s event list.' });
@@ -100,6 +99,16 @@ export default function CommunityEventsList() {
     setUpdating(false);
   };
 
+  const deleteEvent = async (id: string) => {
+    const { error } = await supabase.from('community_events' as any).delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Deleted', description: 'Community event deleted.' });
+      fetchEvents();
+    }
+  };
+
   const formatAudience = (a: string) => {
     switch (a) {
       case 'brothers_only': return 'Brothers Only';
@@ -108,77 +117,123 @@ export default function CommunityEventsList() {
     }
   };
 
+  const pendingCount = events.filter(e => e.status === 'pending').length;
+  const approvedCount = events.filter(e => e.status === 'approved').length;
+  const rejectedCount = events.filter(e => e.status === 'rejected').length;
+
+  function renderEventCard(event: CommunityEvent) {
+    return (
+      <div key={event.id} className="border rounded-xl p-5 bg-card hover:shadow-md transition-shadow">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-lg truncate">{event.title}</h3>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3.5 w-3.5" />
+                {format(new Date(event.event_date), 'dd MMM yyyy')} at {event.start_time?.slice(0, 5)}
+              </span>
+              <span className="flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
+                {formatAudience(event.audience)}
+              </span>
+              <span className="capitalize">{event.event_type}</span>
+              {(event.custom_location || event.is_at_mosque) && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {event.is_at_mosque ? (event.mosque_name || 'At a mosque') : event.custom_location}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">By {event.organizer_name}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => { setSelectedEvent(event); setAdminNotes(event.admin_notes || ''); }}>
+              <Eye className="h-4 w-4 mr-1" /> View
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete event?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete "{event.title}". This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteEvent(event.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Community Events</h1>
-          <p className="text-muted-foreground">Review and manage event submissions from organizers</p>
-        </div>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
+      <div>
+        <h1 className="text-2xl font-bold">Community Events</h1>
+        <p className="text-muted-foreground">Review and manage event submissions from organizers</p>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      ) : events.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          No {filter !== 'all' ? filter : ''} community events found.
-        </div>
       ) : (
-        <div className="space-y-3">
-          {events.map(event => {
-            const sc = statusConfig[event.status] || statusConfig.pending;
-            const StatusIcon = sc.icon;
-            return (
-              <div key={event.id} className="border rounded-xl p-5 bg-card hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-lg truncate">{event.title}</h3>
-                      <Badge variant={sc.variant} className="shrink-0">
-                        <StatusIcon className="h-3 w-3 mr-1" />
-                        {sc.label}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {format(new Date(event.event_date), 'dd MMM yyyy')} at {event.start_time?.slice(0, 5)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        {formatAudience(event.audience)}
-                      </span>
-                      <span className="capitalize">{event.event_type}</span>
-                      {(event.custom_location || event.is_at_mosque) && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5" />
-                          {event.is_at_mosque ? (event.mosque_name || 'At a mosque') : event.custom_location}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">By {event.organizer_name}</p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => { setSelectedEvent(event); setAdminNotes(event.admin_notes || ''); }}>
-                    <Eye className="h-4 w-4 mr-1" /> View
-                  </Button>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="pending" className="gap-2">
+              <Clock className="h-4 w-4" />
+              Pending
+              {pendingCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+                  {pendingCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="approved" className="gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Approved
+              {approvedCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+                  {approvedCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="rejected" className="gap-2">
+              <XCircle className="h-4 w-4" />
+              Rejected
+              {rejectedCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+                  {rejectedCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          {['pending', 'approved', 'rejected'].map(tab => (
+            <TabsContent key={tab} value={tab}>
+              {filteredEvents.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No {tab} community events found.
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredEvents.map(renderEventCard)}
+                </div>
+              )}
+            </TabsContent>
+          ))}
+        </Tabs>
       )}
 
       {/* Detail Dialog */}

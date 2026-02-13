@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Calendar, MapPin, Clock, Users } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -32,7 +34,6 @@ export default function EventsList() {
   async function fetchEvents() {
     setLoading(true);
     try {
-      // Fetch mosque events
       const { data: mosqueEvents, error: mosqueError } = await supabase
         .from('events')
         .select(`*, mosques (name, city)`)
@@ -41,7 +42,6 @@ export default function EventsList() {
 
       if (mosqueError) throw mosqueError;
 
-      // Fetch approved non-mosque community events
       const { data: communityEvents, error: communityError } = await supabase
         .from('community_events')
         .select('*')
@@ -52,7 +52,6 @@ export default function EventsList() {
 
       if (communityError) throw communityError;
 
-      // Get interested counts for mosque events
       const mosqueWithCounts = await Promise.all(
         (mosqueEvents || []).map(async (event: any) => {
           const { data: countData } = await supabase.rpc('get_event_interested_count', {
@@ -76,7 +75,6 @@ export default function EventsList() {
         })
       );
 
-      // Map community events
       const communityMapped: UnifiedEvent[] = (communityEvents || []).map((event: any) => ({
         id: event.id,
         title: event.title,
@@ -93,7 +91,6 @@ export default function EventsList() {
         is_community: true,
       }));
 
-      // Merge and sort by date
       const allEvents = [...mosqueWithCounts, ...communityMapped].sort(
         (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
       );
@@ -101,13 +98,20 @@ export default function EventsList() {
       setEvents(allEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load events',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: 'Failed to load events', variant: 'destructive' });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function deleteEvent(event: UnifiedEvent) {
+    const table = event.is_community ? 'community_events' : 'events';
+    const { error } = await supabase.from(table as any).delete().eq('id', event.id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Deleted', description: 'Event deleted successfully.' });
+      fetchEvents();
     }
   }
 
@@ -123,10 +127,7 @@ export default function EventsList() {
 
   function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
     });
   }
 
@@ -168,9 +169,32 @@ export default function EventsList() {
                 {event.location_city && `, ${event.location_city}`}
               </CardDescription>
             </div>
-            <Badge className={getCategoryColor(event.category)}>
-              {event.category || 'other'}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge className={getCategoryColor(event.category)}>
+                {event.category || 'other'}
+              </Badge>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete event?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete "{event.title}". This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteEvent(event)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -192,14 +216,10 @@ export default function EventsList() {
             )}
           </div>
           {event.description && (
-            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-              {event.description}
-            </p>
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{event.description}</p>
           )}
           {event.guest_speaker && (
-            <p className="mt-2 text-sm">
-              <span className="font-medium">Speaker:</span> {event.guest_speaker}
-            </p>
+            <p className="mt-2 text-sm"><span className="font-medium">Speaker:</span> {event.guest_speaker}</p>
           )}
         </CardContent>
       </Card>
@@ -249,30 +269,7 @@ export default function EventsList() {
         <div>
           <h2 className="text-xl font-semibold mb-4 text-muted-foreground">Past Events</h2>
           <div className="grid gap-4 opacity-75">
-            {pastEvents.slice(0, 10).map((event) => (
-              <Card key={event.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-lg">{event.title}</CardTitle>
-                        {event.is_community && (
-                          <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200">
-                            Community
-                          </Badge>
-                        )}
-                      </div>
-                      <CardDescription className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {event.location_name}
-                        {event.location_city && `, ${event.location_city}`}
-                      </CardDescription>
-                    </div>
-                    <Badge variant="secondary">{formatDate(event.event_date)}</Badge>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
+            {pastEvents.slice(0, 10).map(renderEventCard)}
           </div>
         </div>
       )}
