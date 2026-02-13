@@ -1,0 +1,1 @@
+ALTER TABLE public.mosques DROP COLUMN has_womens_section;

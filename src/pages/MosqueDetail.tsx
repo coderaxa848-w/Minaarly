@@ -283,11 +283,19 @@ export default function MosqueDetail() {
             <MapPin className="h-4 w-4" />
             {mosque.address}, {mosque.city}, {mosque.postcode}
           </p>
-          {mosque.madhab && (
-            <Badge variant="secondary" className="mt-2">
-              {mosque.madhab}
-            </Badge>
-          )}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {mosque.madhab && (
+              <Badge variant="secondary">
+                {mosque.madhab}
+              </Badge>
+            )}
+            {mosque.facilities?.includes('womens_area') && (
+              <Badge variant="secondary" className="bg-pink-500/10 text-pink-600 border-pink-200">
+                <Users className="h-3 w-3 mr-1" />
+                Sisters
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">

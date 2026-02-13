@@ -77,7 +77,7 @@ export default function MosqueDashboard() {
       postcode: editForm.postcode, phone: editForm.phone, email: editForm.email,
       website: editForm.website, description: editForm.description,
       madhab: editForm.madhab, facilities: editForm.facilities,
-      languages: editForm.languages, has_womens_section: editForm.has_womens_section,
+      languages: editForm.languages,
     }).eq('id', mosqueId);
     setSaving(false);
     if (error) {
@@ -253,10 +253,6 @@ export default function MosqueDashboard() {
                 <div><Label>Description</Label><Textarea value={editForm.description || ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
                 <div><Label>Facilities (comma-separated)</Label><Input value={(editForm.facilities || []).join(', ')} onChange={e => setEditForm(f => ({ ...f, facilities: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))} placeholder="e.g. Parking, Wudu Area, Library" /></div>
                 <div><Label>Languages (comma-separated)</Label><Input value={(editForm.languages || []).join(', ')} onChange={e => setEditForm(f => ({ ...f, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))} placeholder="e.g. English, Arabic, Urdu" /></div>
-                <div className="flex items-center gap-3">
-                  <Switch checked={editForm.has_womens_section ?? false} onCheckedChange={v => setEditForm(f => ({ ...f, has_womens_section: v }))} />
-                  <Label>Women's section available</Label>
-                </div>
                 <Button onClick={saveDetails} disabled={saving}><Save className="h-4 w-4 mr-2" />{saving ? 'Saving...' : 'Save Details'}</Button>
               </CardContent>
             </Card>

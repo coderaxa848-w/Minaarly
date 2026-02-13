@@ -341,7 +341,6 @@ export type Database = {
           email: string | null
           established: string | null
           facilities: string[] | null
-          has_womens_section: boolean | null
           id: string
           iftar_facilities: string | null
           is_multi_faith: boolean | null
@@ -385,7 +384,6 @@ export type Database = {
           email?: string | null
           established?: string | null
           facilities?: string[] | null
-          has_womens_section?: boolean | null
           id?: string
           iftar_facilities?: string | null
           is_multi_faith?: boolean | null
@@ -429,7 +427,6 @@ export type Database = {
           email?: string | null
           established?: string | null
           facilities?: string[] | null
-          has_womens_section?: boolean | null
           id?: string
           iftar_facilities?: string | null
           is_multi_faith?: boolean | null
@@ -735,7 +732,6 @@ export type Database = {
           email: string | null
           established: string | null
           facilities: string[] | null
-          has_womens_section: boolean | null
           id: string
           iftar_facilities: string | null
           is_multi_faith: boolean | null
@@ -831,7 +827,6 @@ export type Database = {
           email: string | null
           established: string | null
           facilities: string[] | null
-          has_womens_section: boolean | null
           id: string
           iftar_facilities: string | null
           is_multi_faith: boolean | null

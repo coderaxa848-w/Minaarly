@@ -16,7 +16,6 @@ interface MosqueImport {
   email: string | null;
   website: string | null;
   capacity: number | null;
-  has_womens_section: boolean | null;
   usage_type: string;
   is_multi_faith: boolean;
   madhab: string | null;
@@ -195,7 +194,6 @@ function parseCsvLine(line: string, lineNumber: number): MosqueImport | ParseErr
       latitude: hasCoords ? lat : null,
       phone: cleanPhone(v[25]),
       capacity: v[9] ? parseInt(v[9], 10) || null : null,
-      has_womens_section: hasWomens,
       usage_type: mapUsage(v[10]),
       is_multi_faith: v[11] === 'True',
       madhab: mapMadhab(v[12]),
@@ -336,7 +334,6 @@ Deno.serve(async (req) => {
           madhab: mosque.madhab,
           facilities: mosque.facilities,
           capacity: mosque.capacity,
-          has_womens_section: mosque.has_womens_section,
           usage_type: mosque.usage_type,
           is_multi_faith: mosque.is_multi_faith,
           management: mosque.management,

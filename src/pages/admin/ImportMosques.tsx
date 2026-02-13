@@ -21,7 +21,7 @@ interface ParsedMosque {
   madhab: string | null;
   facilities: string[];
   capacity: number | null;
-  has_womens_section: boolean | null;
+  
   usage_type: string;
   is_multi_faith: boolean;
   management: string | null;
@@ -337,7 +337,7 @@ export default function ImportMosques() {
                             {mosque.usage_type.replace('_', ' ')}
                           </Badge>
                         )}
-                        {mosque.has_womens_section && (
+                        {mosque.facilities?.includes('womens_area') && (
                           <Badge variant="outline" className="bg-pink-500/10 text-pink-600 border-pink-200">
                             Women's Area
                           </Badge>
