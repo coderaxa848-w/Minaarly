@@ -821,7 +821,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "mosque_admin" | "user"
+      app_role: "admin" | "mosque_admin" | "user" | "event_organizer"
       claim_status: "pending" | "approved" | "rejected"
       claimant_role: "imam" | "committee_member" | "volunteer" | "other"
       community_event_type:
@@ -973,7 +973,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "mosque_admin", "user"],
+      app_role: ["admin", "mosque_admin", "user", "event_organizer"],
       claim_status: ["pending", "approved", "rejected"],
       claimant_role: ["imam", "committee_member", "volunteer", "other"],
       community_event_type: [
