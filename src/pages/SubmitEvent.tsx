@@ -157,7 +157,7 @@ export default function SubmitEvent() {
         }
       }
 
-      const { error } = await supabase.from('community_events' as any).insert({
+      const insertData = {
         user_id: user.id,
         title: form.title,
         organizer_name: form.organizer_name,
@@ -177,9 +177,27 @@ export default function SubmitEvent() {
         latitude,
         longitude,
         status: isOrganiser ? 'approved' : 'pending',
-      } as any);
+      } as any;
 
+      const { error } = await supabase.from('community_events' as any).insert(insertData);
       if (error) throw error;
+
+      // If auto-approved organiser event at a mosque, also add to the events table
+      if (isOrganiser && isAtMosque && form.mosque_id) {
+        const { error: eventError } = await supabase.from('events').insert({
+          mosque_id: form.mosque_id,
+          title: form.title,
+          description: form.description || null,
+          event_date: form.event_date,
+          start_time: form.start_time,
+          end_time: form.end_time || null,
+          category: form.category || 'other',
+        } as any);
+        if (eventError) {
+          console.error('Failed to create mosque event:', eventError);
+        }
+      }
+
       setSubmitted(true);
     } catch (err: any) {
       toast({
