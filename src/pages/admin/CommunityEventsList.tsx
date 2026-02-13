@@ -14,23 +14,22 @@ interface CommunityEvent {
   id: string;
   title: string;
   description: string | null;
-  organizer_name: string;
+  organizer_name: string | null;
   organizer_email: string | null;
   organizer_phone: string | null;
   event_date: string;
   start_time: string;
   end_time: string | null;
-  event_type: string;
-  audience: string;
+  source: string | null;
+  audience: string | null;
   category: string | null;
-  status: string;
-  is_at_mosque: boolean;
+  status: string | null;
   mosque_id: string | null;
   custom_location: string | null;
   postcode: string | null;
   image_url: string | null;
   admin_notes: string | null;
-  created_at: string;
+  created_at: string | null;
   mosque_name?: string | null;
   mosque_address?: string | null;
   mosque_city?: string | null;
@@ -48,8 +47,9 @@ export default function CommunityEventsList() {
   const fetchEvents = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('community_events' as any)
+      .from('events')
       .select('*, mosques(name, address, city)')
+      .in('source', ['community_organiser', 'user'])
       .order('created_at', { ascending: false });
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -70,28 +70,14 @@ export default function CommunityEventsList() {
 
   const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
     setUpdating(true);
-    const { error } = await supabase.from('community_events' as any).update({ status, admin_notes: adminNotes || null } as any).eq('id', id);
+    const { error } = await supabase
+      .from('events')
+      .update({ status, admin_notes: adminNotes || null })
+      .eq('id', id);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      if (status === 'approved' && selectedEvent?.is_at_mosque && selectedEvent?.mosque_id) {
-        const { error: eventError } = await supabase.from('events').insert({
-          mosque_id: selectedEvent.mosque_id,
-          title: selectedEvent.title,
-          description: selectedEvent.description || null,
-          event_date: selectedEvent.event_date,
-          start_time: selectedEvent.start_time,
-          end_time: selectedEvent.end_time || null,
-          category: selectedEvent.category || 'other',
-        } as any);
-        if (eventError) {
-          toast({ title: 'Partial success', description: `Event approved but failed to add to mosque events: ${eventError.message}`, variant: 'destructive' });
-        } else {
-          toast({ title: 'Event approved', description: 'Event approved and added to the mosque\'s event list.' });
-        }
-      } else {
-        toast({ title: `Event ${status}`, description: `The event has been ${status}.` });
-      }
+      toast({ title: `Event ${status}`, description: `The event has been ${status}.` });
       setSelectedEvent(null);
       setAdminNotes('');
       fetchEvents();
@@ -100,7 +86,7 @@ export default function CommunityEventsList() {
   };
 
   const deleteEvent = async (id: string) => {
-    const { error } = await supabase.from('community_events' as any).delete().eq('id', id);
+    const { error } = await supabase.from('events').delete().eq('id', id);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
@@ -109,7 +95,7 @@ export default function CommunityEventsList() {
     }
   };
 
-  const formatAudience = (a: string) => {
+  const formatAudience = (a: string | null) => {
     switch (a) {
       case 'brothers_only': return 'Brothers Only';
       case 'sisters_only': return 'Sisters Only';
@@ -121,12 +107,25 @@ export default function CommunityEventsList() {
   const approvedCount = events.filter(e => e.status === 'approved').length;
   const rejectedCount = events.filter(e => e.status === 'rejected').length;
 
+  function getLocationDisplay(event: CommunityEvent) {
+    if (event.mosque_name) return event.mosque_name;
+    return event.custom_location || 'Custom Location';
+  }
+
   function renderEventCard(event: CommunityEvent) {
     return (
       <div key={event.id} className="border rounded-xl p-5 bg-card hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg truncate">{event.title}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-lg truncate">{event.title}</h3>
+              {event.source === 'community_organiser' && (
+                <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200">Organiser</Badge>
+              )}
+              {event.source === 'user' && (
+                <Badge variant="outline" className="bg-sky-100 text-sky-700 border-sky-200">User</Badge>
+              )}
+            </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-1">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
@@ -136,15 +135,13 @@ export default function CommunityEventsList() {
                 <Users className="h-3.5 w-3.5" />
                 {formatAudience(event.audience)}
               </span>
-              <span className="capitalize">{event.event_type}</span>
-              {(event.custom_location || event.is_at_mosque) && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {event.is_at_mosque ? (event.mosque_name || 'At a mosque') : event.custom_location}
-                </span>
-              )}
+              <span className="capitalize">{event.category || 'other'}</span>
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" />
+                {getLocationDisplay(event)}
+              </span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">By {event.organizer_name}</p>
+            {event.organizer_name && <p className="text-sm text-muted-foreground mt-1">By {event.organizer_name}</p>}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" size="sm" onClick={() => { setSelectedEvent(event); setAdminNotes(event.admin_notes || ''); }}>
@@ -181,7 +178,7 @@ export default function CommunityEventsList() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Community Events</h1>
-        <p className="text-muted-foreground">Review and manage event submissions from organizers</p>
+        <p className="text-muted-foreground">Review and manage event submissions from organizers and users</p>
       </div>
 
       {loading ? (
@@ -246,7 +243,7 @@ export default function CommunityEventsList() {
             <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
                 <div><span className="font-medium text-muted-foreground">Status</span><p className="capitalize">{selectedEvent.status}</p></div>
-                <div><span className="font-medium text-muted-foreground">Event Type</span><p className="capitalize">{selectedEvent.event_type}</p></div>
+                <div><span className="font-medium text-muted-foreground">Source</span><p className="capitalize">{selectedEvent.source?.replace('_', ' ') || 'N/A'}</p></div>
                 <div><span className="font-medium text-muted-foreground">Audience</span><p>{formatAudience(selectedEvent.audience)}</p></div>
                 <div><span className="font-medium text-muted-foreground">Category</span><p className="capitalize">{selectedEvent.category || 'N/A'}</p></div>
                 <div><span className="font-medium text-muted-foreground">Date</span><p>{format(new Date(selectedEvent.event_date), 'dd MMM yyyy')}</p></div>
@@ -259,19 +256,21 @@ export default function CommunityEventsList() {
 
               <div className="border-t pt-3">
                 <span className="font-medium text-muted-foreground">Location</span>
-                <p>{selectedEvent.is_at_mosque ? (selectedEvent.mosque_name || 'At a mosque') : selectedEvent.custom_location || 'Not specified'}</p>
-                {selectedEvent.is_at_mosque && selectedEvent.mosque_address && (
+                <p>{selectedEvent.mosque_name || selectedEvent.custom_location || 'Not specified'}</p>
+                {selectedEvent.mosque_address && (
                   <p className="text-muted-foreground">{selectedEvent.mosque_address}{selectedEvent.mosque_city ? `, ${selectedEvent.mosque_city}` : ''}</p>
                 )}
                 {selectedEvent.postcode && <p className="text-muted-foreground">Postcode: {selectedEvent.postcode}</p>}
               </div>
 
-              <div className="border-t pt-3">
-                <span className="font-medium text-muted-foreground">Organizer</span>
-                <p>{selectedEvent.organizer_name}</p>
-                {selectedEvent.organizer_email && <p className="text-muted-foreground">{selectedEvent.organizer_email}</p>}
-                {selectedEvent.organizer_phone && <p className="text-muted-foreground">{selectedEvent.organizer_phone}</p>}
-              </div>
+              {selectedEvent.organizer_name && (
+                <div className="border-t pt-3">
+                  <span className="font-medium text-muted-foreground">Organizer</span>
+                  <p>{selectedEvent.organizer_name}</p>
+                  {selectedEvent.organizer_email && <p className="text-muted-foreground">{selectedEvent.organizer_email}</p>}
+                  {selectedEvent.organizer_phone && <p className="text-muted-foreground">{selectedEvent.organizer_phone}</p>}
+                </div>
+              )}
 
               {selectedEvent.status === 'pending' && (
                 <div className="border-t pt-3 space-y-3">

@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-interface UnifiedEvent {
+interface EventRow {
   id: string;
   title: string;
   description: string | null;
@@ -17,14 +17,17 @@ interface UnifiedEvent {
   category: string | null;
   guest_speaker: string | null;
   is_archived: boolean | null;
-  location_name: string | null;
-  location_city: string | null;
+  source: string | null;
+  status: string | null;
+  custom_location: string | null;
+  organizer_name: string | null;
+  mosque_name: string | null;
+  mosque_city: string | null;
   interested_count: number;
-  is_community: boolean;
 }
 
 export default function EventsList() {
-  const [events, setEvents] = useState<UnifiedEvent[]>([]);
+  const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,26 +37,16 @@ export default function EventsList() {
   async function fetchEvents() {
     setLoading(true);
     try {
-      const { data: mosqueEvents, error: mosqueError } = await supabase
+      const { data, error } = await supabase
         .from('events')
         .select(`*, mosques (name, city)`)
         .order('event_date', { ascending: true })
-        .limit(100);
+        .limit(200);
 
-      if (mosqueError) throw mosqueError;
+      if (error) throw error;
 
-      const { data: communityEvents, error: communityError } = await supabase
-        .from('community_events')
-        .select('*')
-        .eq('status', 'approved')
-        .eq('is_at_mosque', false)
-        .order('event_date', { ascending: true })
-        .limit(100);
-
-      if (communityError) throw communityError;
-
-      const mosqueWithCounts = await Promise.all(
-        (mosqueEvents || []).map(async (event: any) => {
+      const mapped = await Promise.all(
+        (data || []).map(async (event: any) => {
           const { data: countData } = await supabase.rpc('get_event_interested_count', {
             _event_id: event.id,
           });
@@ -67,35 +60,18 @@ export default function EventsList() {
             category: event.category,
             guest_speaker: event.guest_speaker,
             is_archived: event.is_archived,
-            location_name: event.mosques?.name || null,
-            location_city: event.mosques?.city || null,
+            source: event.source,
+            status: event.status,
+            custom_location: event.custom_location,
+            organizer_name: event.organizer_name,
+            mosque_name: event.mosques?.name || null,
+            mosque_city: event.mosques?.city || null,
             interested_count: countData || 0,
-            is_community: false,
-          } as UnifiedEvent;
+          } as EventRow;
         })
       );
 
-      const communityMapped: UnifiedEvent[] = (communityEvents || []).map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        event_date: event.event_date,
-        start_time: event.start_time,
-        end_time: event.end_time,
-        category: event.category,
-        guest_speaker: null,
-        is_archived: false,
-        location_name: event.custom_location || event.postcode || 'Custom Location',
-        location_city: null,
-        interested_count: 0,
-        is_community: true,
-      }));
-
-      const allEvents = [...mosqueWithCounts, ...communityMapped].sort(
-        (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
-      );
-
-      setEvents(allEvents);
+      setEvents(mapped);
     } catch (error) {
       console.error('Error fetching events:', error);
       toast({ title: 'Error', description: 'Failed to load events', variant: 'destructive' });
@@ -104,9 +80,8 @@ export default function EventsList() {
     }
   }
 
-  async function deleteEvent(event: UnifiedEvent) {
-    const table = event.is_community ? 'community_events' : 'events';
-    const { error } = await supabase.from(table as any).delete().eq('id', event.id);
+  async function deleteEvent(id: string) {
+    const { error } = await supabase.from('events').delete().eq('id', id);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
@@ -135,6 +110,15 @@ export default function EventsList() {
     return timeStr.slice(0, 5);
   }
 
+  function getSourceBadge(source: string | null) {
+    switch (source) {
+      case 'mosque_admin': return <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-200">Mosque</Badge>;
+      case 'community_organiser': return <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200">Organiser</Badge>;
+      case 'user': return <Badge variant="outline" className="bg-sky-100 text-sky-700 border-sky-200">User</Badge>;
+      default: return null;
+    }
+  }
+
   function getCategoryColor(category: string | null) {
     switch (category) {
       case 'lecture': return 'bg-blue-100 text-blue-700';
@@ -145,11 +129,19 @@ export default function EventsList() {
       case 'jummah': return 'bg-teal-100 text-teal-700';
       case 'fundraiser': return 'bg-orange-100 text-orange-700';
       case 'iftar': return 'bg-red-100 text-red-700';
+      case 'quran_class': return 'bg-cyan-100 text-cyan-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   }
 
-  function renderEventCard(event: UnifiedEvent) {
+  function getLocationDisplay(event: EventRow) {
+    if (event.mosque_name) {
+      return `${event.mosque_name}${event.mosque_city ? `, ${event.mosque_city}` : ''}`;
+    }
+    return event.custom_location || 'Custom Location';
+  }
+
+  function renderEventCard(event: EventRow) {
     return (
       <Card key={event.id}>
         <CardHeader className="pb-2">
@@ -157,16 +149,11 @@ export default function EventsList() {
             <div>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-lg">{event.title}</CardTitle>
-                {event.is_community && (
-                  <Badge variant="outline" className="bg-violet-100 text-violet-700 border-violet-200">
-                    Community
-                  </Badge>
-                )}
+                {getSourceBadge(event.source)}
               </div>
               <CardDescription className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
-                {event.location_name}
-                {event.location_city && `, ${event.location_city}`}
+                {getLocationDisplay(event)}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -188,7 +175,7 @@ export default function EventsList() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteEvent(event)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogAction onClick={() => deleteEvent(event.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                       Delete
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -208,18 +195,19 @@ export default function EventsList() {
               {formatTime(event.start_time)}
               {event.end_time && ` - ${formatTime(event.end_time)}`}
             </div>
-            {!event.is_community && (
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Users className="h-4 w-4" />
-                {event.interested_count} interested
-              </div>
-            )}
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Users className="h-4 w-4" />
+              {event.interested_count} interested
+            </div>
           </div>
           {event.description && (
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{event.description}</p>
           )}
           {event.guest_speaker && (
             <p className="mt-2 text-sm"><span className="font-medium">Speaker:</span> {event.guest_speaker}</p>
+          )}
+          {event.organizer_name && (
+            <p className="mt-1 text-sm text-muted-foreground">Organizer: {event.organizer_name}</p>
           )}
         </CardContent>
       </Card>
