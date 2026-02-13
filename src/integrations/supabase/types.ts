@@ -129,6 +129,51 @@ export type Database = {
           },
         ]
       }
+      event_organizer_profiles: {
+        Row: {
+          admin_notes: string | null
+          bio: string | null
+          created_at: string
+          display_name: string
+          id: string
+          org_type: string
+          social_instagram: string | null
+          social_twitter: string | null
+          social_website: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          org_type?: string
+          social_instagram?: string | null
+          social_twitter?: string | null
+          social_website?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          org_type?: string
+          social_instagram?: string | null
+          social_twitter?: string | null
+          social_website?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           category: Database["public"]["Enums"]["event_category"] | null
@@ -655,6 +700,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_submit_community_event: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       can_submit_mosque_claim: {
         Args: { _email: string; _mosque_id: string; _user_id: string }
         Returns: boolean
@@ -762,6 +811,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_event_organizer: { Args: { _user_id: string }; Returns: boolean }
       is_mosque_admin: {
         Args: { _mosque_id: string; _user_id: string }
         Returns: boolean
