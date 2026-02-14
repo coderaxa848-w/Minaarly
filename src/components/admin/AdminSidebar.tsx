@@ -12,7 +12,9 @@ import {
   Sparkles,
   ExternalLink,
   Upload,
-  UserCheck
+  UserCheck,
+  Bug,
+  Lightbulb
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -25,6 +27,8 @@ const navItems = [
   { name: 'Events', path: '/admin/events', icon: Calendar, color: 'from-rose-500 to-pink-600' },
   { name: 'Community Events', path: '/admin/community-events', icon: Sparkles, color: 'from-indigo-500 to-violet-600' },
   { name: 'Organisers', path: '/admin/organisers', icon: UserCheck, color: 'from-cyan-500 to-teal-600' },
+  { name: 'Bug Reports', path: '/admin/bug-reports', icon: Bug, color: 'from-red-500 to-rose-600' },
+  { name: 'Suggestions', path: '/admin/suggestions', icon: Lightbulb, color: 'from-yellow-500 to-amber-600' },
   { name: 'Import', path: '/admin/import', icon: Upload, color: 'from-slate-500 to-slate-600' },
 ];
 
