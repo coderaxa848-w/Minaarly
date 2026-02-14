@@ -12,8 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
-import { Building, Clock, Calendar, MapPin, Phone, Mail, Globe, Edit, Plus, Trash2, Save, CheckCircle } from 'lucide-react';
+import { Building, Clock, Calendar, MapPin, Phone, Mail, Globe, Edit, Plus, Trash2, Save, CheckCircle, Users, Heart, Moon, Link as LinkIcon, ArrowRight } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Mosque = Tables<'mosques'>;
@@ -27,6 +28,7 @@ export default function MosqueDashboard() {
   const [iqamah, setIqamah] = useState<IqamahTimes | null>(null);
   const [events, setEvents] = useState<MosqueEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Edit states
   const [editForm, setEditForm] = useState<Partial<Mosque>>({});
@@ -34,6 +36,7 @@ export default function MosqueDashboard() {
   const [saving, setSaving] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<MosqueEvent | null>(null);
+  const [ramadanEnabled, setRamadanEnabled] = useState(false);
   const [eventForm, setEventForm] = useState({
     title: '', description: '', event_date: '', start_time: '', end_time: '',
     category: 'other' as const, guest_speaker: '', topic: '',
@@ -47,6 +50,12 @@ export default function MosqueDashboard() {
     }
     fetchData();
   }, [adminLoading, isMosqueAdmin, mosqueId]);
+
+  useEffect(() => {
+    if (mosque) {
+      setRamadanEnabled(!!(mosque.tarawih_rakah || mosque.tarawih_type || mosque.qiyamul_layl));
+    }
+  }, [mosque]);
 
   async function fetchData() {
     if (!mosqueId) return;
@@ -78,6 +87,12 @@ export default function MosqueDashboard() {
       website: editForm.website, description: editForm.description,
       madhab: editForm.madhab, facilities: editForm.facilities,
       languages: editForm.languages,
+      established: editForm.established || null,
+      capacity: editForm.capacity || null,
+      mosque_donation_link: editForm.mosque_donation_link || null,
+      tarawih_rakah: ramadanEnabled ? (editForm.tarawih_rakah || null) : null,
+      tarawih_type: ramadanEnabled ? (editForm.tarawih_type || null) : null,
+      qiyamul_layl: ramadanEnabled ? (editForm.qiyamul_layl || null) : null,
     }).eq('id', mosqueId);
     setSaving(false);
     if (error) {
@@ -167,21 +182,35 @@ export default function MosqueDashboard() {
 
   if (!mosque) return null;
 
+  const upcomingEvents = events.filter(e => new Date(e.event_date) >= new Date()).length;
+  const completionItems = [
+    { label: 'Description', done: !!mosque.description },
+    { label: 'Phone', done: !!mosque.phone },
+    { label: 'Email', done: !!mosque.email },
+    { label: 'Website', done: !!mosque.website },
+    { label: 'Prayer Times', done: !!iqamah },
+    { label: 'Facilities', done: (mosque.facilities?.length ?? 0) > 0 },
+  ];
+  const completionPct = Math.round((completionItems.filter(i => i.done).length / completionItems.length) * 100);
+
   return (
     <Layout>
       <div className="container py-8 md:py-12 max-w-5xl">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Building className="h-6 w-6 text-primary" />
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Building className="h-7 w-7 text-primary" />
           </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{mosque.name}</h1>
-            <p className="text-muted-foreground text-sm">Mosque Dashboard</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground truncate">{mosque.name}</h1>
+              {mosque.is_verified && <Badge variant="secondary" className="shrink-0"><CheckCircle className="h-3 w-3 mr-1" /> Verified</Badge>}
+            </div>
+            <p className="text-muted-foreground text-sm">Mosque Dashboard • {mosque.city}, {mosque.postcode}</p>
           </div>
-          {mosque.is_verified && <Badge variant="secondary" className="ml-auto"><CheckCircle className="h-3 w-3 mr-1" /> Verified</Badge>}
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="details">Edit Details</TabsTrigger>
@@ -191,44 +220,123 @@ export default function MosqueDashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-6">
+              {/* Profile Completion */}
               <Card>
-                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</CardTitle></CardHeader>
-                <CardContent className="space-y-1 text-sm text-muted-foreground">
-                  <p>{mosque.address}</p>
-                  <p>{mosque.city}, {mosque.postcode}</p>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-foreground">Profile Completion</span>
+                    <span className="text-sm font-bold text-primary">{completionPct}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2.5">
+                    <div className="bg-primary h-2.5 rounded-full transition-all" style={{ width: `${completionPct}%` }} />
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {completionItems.map(item => (
+                      <Badge key={item.label} variant={item.done ? 'secondary' : 'outline'} className={item.done ? 'text-primary' : 'text-muted-foreground'}>
+                        {item.done ? <CheckCircle className="h-3 w-3 mr-1" /> : null}
+                        {item.label}
+                      </Badge>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Phone className="h-4 w-4" /> Contact</CardTitle></CardHeader>
-                <CardContent className="space-y-1 text-sm text-muted-foreground">
-                  {mosque.phone && <p className="flex items-center gap-2"><Phone className="h-3 w-3" /> {mosque.phone}</p>}
-                  {mosque.email && <p className="flex items-center gap-2"><Mail className="h-3 w-3" /> {mosque.email}</p>}
-                  {mosque.website && <p className="flex items-center gap-2"><Globe className="h-3 w-3" /> {mosque.website}</p>}
-                  {!mosque.phone && !mosque.email && !mosque.website && <p>No contact info added yet.</p>}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Clock className="h-4 w-4" /> Prayer Times</CardTitle></CardHeader>
-                <CardContent>
-                  {iqamah ? (
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah'].map(p => (
-                        <div key={p} className="flex justify-between">
-                          <span className="capitalize text-muted-foreground">{p}</span>
-                          <span className="font-medium text-foreground">{(iqamah as any)[p] || '—'}</span>
-                        </div>
-                      ))}
+
+              {/* Stats Grid */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setActiveTab('details')}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <MapPin className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Location</p>
+                        <p className="font-semibold text-foreground text-sm truncate">{mosque.city}</p>
+                      </div>
                     </div>
-                  ) : <p className="text-sm text-muted-foreground">No prayer times set.</p>}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Calendar className="h-4 w-4" /> Events</CardTitle></CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{events.length} event{events.length !== 1 ? 's' : ''} listed</p>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setActiveTab('prayer')}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Clock className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Prayer Times</p>
+                        <p className="font-semibold text-foreground text-sm">{iqamah ? 'Configured' : 'Not set'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setActiveTab('events')}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Calendar className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Upcoming Events</p>
+                        <p className="font-semibold text-foreground text-sm">{upcomingEvents} event{upcomingEvents !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Capacity</p>
+                        <p className="font-semibold text-foreground text-sm">{mosque.capacity || '—'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Quick Info */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> Contact Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    {mosque.phone && <p className="flex items-center gap-2 text-muted-foreground"><Phone className="h-3 w-3" /> {mosque.phone}</p>}
+                    {mosque.email && <p className="flex items-center gap-2 text-muted-foreground"><Mail className="h-3 w-3" /> {mosque.email}</p>}
+                    {mosque.website && <p className="flex items-center gap-2 text-muted-foreground"><Globe className="h-3 w-3" /> {mosque.website}</p>}
+                    {!mosque.phone && !mosque.email && !mosque.website && (
+                      <p className="text-muted-foreground">No contact info added. <button className="text-primary underline" onClick={() => setActiveTab('details')}>Add now</button></p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Today's Prayer Times</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {iqamah ? (
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                        {['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].map(p => (
+                          <div key={p} className="flex justify-between py-0.5">
+                            <span className="capitalize text-muted-foreground">{p}</span>
+                            <span className="font-medium text-foreground">{(iqamah as any)[p] || '—'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No prayer times set. <button className="text-primary underline" onClick={() => setActiveTab('prayer')}>Configure</button></p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </TabsContent>
 
@@ -239,7 +347,8 @@ export default function MosqueDashboard() {
                 <CardTitle>Mosque Details</CardTitle>
                 <CardDescription>Update your mosque's information visible to the public.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                {/* Basic Info */}
                 <div className="grid gap-4 md:grid-cols-2">
                   <div><Label>Name</Label><Input value={editForm.name || ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} /></div>
                   <div><Label>Madhab</Label><Input value={editForm.madhab || ''} onChange={e => setEditForm(f => ({ ...f, madhab: e.target.value }))} placeholder="e.g. Hanafi" /></div>
@@ -250,7 +359,86 @@ export default function MosqueDashboard() {
                   <div><Label>Email</Label><Input value={editForm.email || ''} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} /></div>
                   <div><Label>Website</Label><Input value={editForm.website || ''} onChange={e => setEditForm(f => ({ ...f, website: e.target.value }))} /></div>
                 </div>
+
                 <div><Label>Description</Label><Textarea value={editForm.description || ''} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
+
+                <Separator />
+
+                {/* Additional Details */}
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Additional Details</h3>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div><Label>Established (Year)</Label><Input value={editForm.established || ''} onChange={e => setEditForm(f => ({ ...f, established: e.target.value }))} placeholder="e.g. 1985" /></div>
+                    <div><Label>Capacity</Label><Input type="number" value={editForm.capacity ?? ''} onChange={e => setEditForm(f => ({ ...f, capacity: e.target.value ? parseInt(e.target.value) : null }))} placeholder="e.g. 500" /></div>
+                    <div><Label>Madhab</Label><Input value={editForm.madhab || ''} onChange={e => setEditForm(f => ({ ...f, madhab: e.target.value }))} placeholder="e.g. Hanafi" /></div>
+                  </div>
+                </div>
+
+                {/* Donation Link */}
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Heart className="h-4 w-4 text-primary" /> Donation</h3>
+                  <div><Label>Donation Link</Label><Input value={editForm.mosque_donation_link || ''} onChange={e => setEditForm(f => ({ ...f, mosque_donation_link: e.target.value }))} placeholder="https://donate.example.com" /></div>
+                </div>
+
+                <Separator />
+
+                {/* Ramadan Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Moon className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-semibold text-foreground">Ramadan Settings</h3>
+                    </div>
+                    <Switch checked={ramadanEnabled} onCheckedChange={setRamadanEnabled} />
+                  </div>
+                  {ramadanEnabled && (
+                    <div className="grid gap-4 md:grid-cols-3 p-4 rounded-lg border bg-muted/30">
+                      <div>
+                        <Label>Tarawih Rakah</Label>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={editForm.tarawih_rakah || ''}
+                          onChange={e => setEditForm(f => ({ ...f, tarawih_rakah: e.target.value }))}
+                        >
+                          <option value="">Select...</option>
+                          <option value="8">8 Rakah</option>
+                          <option value="20">20 Rakah</option>
+                          <option value="8+3">8 + 3 Witr</option>
+                          <option value="20+3">20 + 3 Witr</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Tarawih Type</Label>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={editForm.tarawih_type || ''}
+                          onChange={e => setEditForm(f => ({ ...f, tarawih_type: e.target.value }))}
+                        >
+                          <option value="">Select...</option>
+                          <option value="khatm">Khatm (Full Quran)</option>
+                          <option value="selected_surahs">Selected Surahs</option>
+                          <option value="short">Short Surahs</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Qiyamul Layl</Label>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={editForm.qiyamul_layl || ''}
+                          onChange={e => setEditForm(f => ({ ...f, qiyamul_layl: e.target.value }))}
+                        >
+                          <option value="">Select...</option>
+                          <option value="yes">Yes - Available</option>
+                          <option value="last_10">Last 10 Nights Only</option>
+                          <option value="no">No</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
                 <div><Label>Facilities (comma-separated)</Label><Input value={(editForm.facilities || []).join(', ')} onChange={e => setEditForm(f => ({ ...f, facilities: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))} placeholder="e.g. Parking, Wudu Area, Library" /></div>
                 <div><Label>Languages (comma-separated)</Label><Input value={(editForm.languages || []).join(', ')} onChange={e => setEditForm(f => ({ ...f, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))} placeholder="e.g. English, Arabic, Urdu" /></div>
                 <Button onClick={saveDetails} disabled={saving}><Save className="h-4 w-4 mr-2" />{saving ? 'Saving...' : 'Save Details'}</Button>
