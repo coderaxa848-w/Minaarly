@@ -179,8 +179,8 @@ export function HeroSection() {
             {[
               { value: '2,000+', label: 'Mosques', icon: MapPin },
               { value: '24/7', label: 'Live Prayer Times', icon: Clock },
-              { value: '1000+', label: 'Community Events', icon: Calendar },
-              { value: '10K+', label: 'Muslims Trust Us', icon: Star },
+              { value: 'Create', label: 'Community Events', icon: Calendar },
+              { value: 'Free', label: 'For Everyone', icon: Star },
             ].map((stat, i) => (
               <motion.div
                 key={stat.label}

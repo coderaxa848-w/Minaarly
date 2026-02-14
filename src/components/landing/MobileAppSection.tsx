@@ -127,12 +127,12 @@ export function MobileAppSection() {
           {/* Glow behind phones */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-emerald-500/15 rounded-full blur-[120px]" />
 
-          <div className="flex justify-center items-end gap-3 md:gap-5 lg:gap-6 relative">
+          <div className="flex justify-center items-end gap-2 sm:gap-3 md:gap-5 lg:gap-6 relative px-4 overflow-hidden">
             {phoneScreens.map((screen, i) => {
               const isCenter = i === 2 || i === 3;
               const isEdge = i === 0 || i === 5;
               const rotation = i === 0 ? -8 : i === 1 ? -4 : i === 2 ? -1 : i === 3 ? 1 : i === 4 ? 4 : 8;
-              const yOffset = isCenter ? 0 : isEdge ? 32 : 16;
+              const yOffset = isCenter ? 0 : isEdge ? 24 : 12;
               const scale = isCenter ? 1 : isEdge ? 0.85 : 0.92;
               const zIndex = isCenter ? 20 : isEdge ? 5 : 10;
               const opacity = isCenter ? 1 : isEdge ? 0.7 : 0.85;
@@ -148,14 +148,14 @@ export function MobileAppSection() {
                   className="flex-shrink-0 cursor-pointer will-change-transform"
                   style={{ zIndex }}
                 >
-                  <div className="w-36 sm:w-40 md:w-44 lg:w-48 rounded-[1.8rem] overflow-hidden shadow-2xl shadow-black/50 border-2 border-white/10 bg-slate-900">
+                  <div className="w-[4.5rem] sm:w-28 md:w-40 lg:w-48 rounded-xl sm:rounded-2xl md:rounded-[1.8rem] overflow-hidden shadow-2xl shadow-black/50 border border-white/10 sm:border-2 bg-slate-900">
                     <img
                       src={screen.src}
                       alt={screen.alt}
                       className="w-full h-auto"
                     />
                   </div>
-                  <p className="text-center text-xs text-slate-500 mt-3 font-medium">{screen.label}</p>
+                  <p className="text-center text-[9px] sm:text-xs text-slate-500 mt-2 sm:mt-3 font-medium">{screen.label}</p>
                 </motion.div>
               );
             })}
