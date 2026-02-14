@@ -177,7 +177,7 @@ export function HeroSection() {
             className="flex flex-wrap justify-center gap-3 mb-16"
           >
             {[
-              { value: '2,000+', label: 'Mosques', icon: MapPin },
+              { value: '3,000+', label: 'Mosques', icon: MapPin },
               { value: '24/7', label: 'Live Prayer Times', icon: Clock },
               { value: 'Create', label: 'Community Events', icon: Calendar },
               { value: 'Free', label: 'For Everyone', icon: Star },
