@@ -1,36 +1,59 @@
 
 
-# Fix: Non-Mosque Community Events Not Appearing in Admin Events Page
+## Add Bug Reports and User Suggestions to Admin Dashboard
 
-## Problem
-When any user (organiser or normal) creates an event at a custom location (not a mosque), it gets stored in the `community_events` table. The database trigger `sync_community_event_to_events` only syncs events that have a `mosque_id`, so non-mosque events are never copied to the `events` table. The admin Events page (`EventsList.tsx`) only queries the `events` table, meaning non-mosque community events are invisible -- even when approved.
+### What we're building
+Two new sections on the admin dashboard and two new admin pages to manage:
+1. **Bug Reports** (from `issue_report_form` table) - user-submitted bug reports with screenshots/videos
+2. **User Suggestions** (from `user_suggestions` table) - feature requests from users
 
-## Root Cause
-- The `events` table has a mandatory `mosque_id` foreign key, so non-mosque events structurally cannot exist there
-- The admin Events page only queries the `events` table
-- The trigger correctly skips non-mosque events (they can't go into `events`)
+### Changes
 
-## Solution
+#### 1. Admin Dashboard (`AdminDashboard.tsx`)
+- Add two new stat cards: "Bug Reports" (count of unresolved issues) and "Suggestions" (count of unaccepted suggestions)
+- Add a new "Recent Reports" section below the existing Pending Claims area showing the latest 5 bug reports with category, description preview, and time ago
+- Fetch counts from `issue_report_form` (where `resolved = false`) and `user_suggestions` (where `accepted = false`)
 
-### 1. Revert Community Events filter back to "pending"
-Change the default filter in `CommunityEventsList.tsx` back to `'pending'` so admins see events needing review first.
+#### 2. New Admin Page: Bug Reports (`src/pages/admin/BugReportsList.tsx`)
+- Table view of all bug reports with columns: category, description, mosque name, screenshots, video, resolved status, date
+- Ability to mark as resolved / add notes
+- Click to expand and view full details including screenshots and video
 
-### 2. Update the admin Events page to also show approved community events
-Modify `EventsList.tsx` to fetch approved community events from the `community_events` table (both mosque and non-mosque) and display them alongside regular mosque events. Non-mosque events will show their custom location instead of a mosque name.
+#### 3. New Admin Page: User Suggestions (`src/pages/admin/SuggestionsList.tsx`)
+- Table view of all suggestions with columns: area, description, user email, screenshots, accepted status, date
+- Ability to mark as accepted
+- Click to expand full details
+
+#### 4. Sidebar (`AdminSidebar.tsx`)
+- Add two new nav items: "Bug Reports" and "Suggestions" with appropriate icons (Bug and Lightbulb)
+
+#### 5. Routing (`App.tsx`)
+- Add routes: `/admin/bug-reports` and `/admin/suggestions`
+
+#### 6. RLS Policies
+- Both `issue_report_form` and `user_suggestions` currently have **no RLS policies** -- we need to add admin SELECT/UPDATE policies so the admin dashboard can read and update these records
 
 ### Technical Details
 
-**File: `src/pages/admin/CommunityEventsList.tsx`**
-- Revert line 48: Change `useState('all')` back to `useState('pending')`
+**Database queries for dashboard stats:**
+```sql
+-- Bug reports count (unresolved)
+SELECT count(*) FROM issue_report_form WHERE resolved = false;
+-- Suggestions count (not accepted)  
+SELECT count(*) FROM user_suggestions WHERE accepted = false;
+```
 
-**File: `src/pages/admin/EventsList.tsx`**
-- Add a second query to fetch approved `community_events` where `is_at_mosque = false`
-- Merge these into the events list with a "Community" badge to distinguish them
-- Display `custom_location` and `postcode` instead of mosque name/city for non-mosque events
-- Sort all events together by date
+**RLS policies to add:**
+- `issue_report_form`: Admin can SELECT, UPDATE all rows; users can INSERT and SELECT their own
+- `user_suggestions`: Admin can SELECT, UPDATE all rows; users can INSERT and SELECT their own
 
-The unified interface will look like:
-- Mosque events show "Mosque Name, City" as location
-- Non-mosque events show "Custom Location" with a "Community" badge
-- Both appear in the same Upcoming/Past sections, sorted by date
+**New files:**
+- `src/pages/admin/BugReportsList.tsx`
+- `src/pages/admin/SuggestionsList.tsx`
+
+**Modified files:**
+- `src/pages/admin/AdminDashboard.tsx` - add stats + recent reports section
+- `src/components/admin/AdminSidebar.tsx` - add nav items
+- `src/App.tsx` - add routes
+- `src/pages/admin/index.ts` - export new pages
 
