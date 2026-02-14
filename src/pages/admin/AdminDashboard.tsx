@@ -17,7 +17,9 @@ import {
   Activity,
   MapPin,
   BarChart3,
-  Zap
+  Zap,
+  Bug,
+  Lightbulb
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +32,8 @@ interface DashboardStats {
   totalUsers: number;
   totalEvents: number;
   upcomingEvents: number;
+  openBugReports: number;
+  pendingSuggestions: number;
 }
 
 interface RecentClaim {
@@ -48,6 +52,8 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalEvents: 0,
     upcomingEvents: 0,
+    openBugReports: 0,
+    pendingSuggestions: 0,
   });
   const [recentClaims, setRecentClaims] = useState<RecentClaim[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +94,18 @@ export default function AdminDashboard() {
           .gte('event_date', today)
           .eq('is_archived', false);
 
+        // Fetch bug report count (unresolved)
+        const { count: openBugReports } = await supabase
+          .from('issue_report_form')
+          .select('*', { count: 'exact', head: true })
+          .eq('resolved', false);
+
+        // Fetch suggestion count (not accepted)
+        const { count: pendingSuggestions } = await supabase
+          .from('user_suggestions')
+          .select('*', { count: 'exact', head: true })
+          .eq('accepted', false);
+
         setStats({
           totalMosques: totalMosques || 0,
           verifiedMosques: verifiedMosques || 0,
@@ -95,6 +113,8 @@ export default function AdminDashboard() {
           totalUsers: totalUsers || 0,
           totalEvents: totalEvents || 0,
           upcomingEvents: upcomingEvents || 0,
+          openBugReports: openBugReports || 0,
+          pendingSuggestions: pendingSuggestions || 0,
         });
 
         // Fetch recent pending claims with mosque name
@@ -184,6 +204,30 @@ export default function AdminDashboard() {
       iconColor: 'text-violet-500',
       trend: '+5%',
       trendUp: true,
+    },
+    {
+      title: 'Bug Reports',
+      value: stats.openBugReports,
+      description: 'Unresolved issues',
+      icon: Bug,
+      href: '/admin/bug-reports',
+      gradient: 'from-red-500 to-rose-600',
+      bgGradient: 'from-red-500/10 to-rose-500/5',
+      iconBg: 'bg-red-500/10',
+      iconColor: 'text-red-500',
+      badge: stats.openBugReports > 0,
+      urgent: stats.openBugReports > 0,
+    },
+    {
+      title: 'Suggestions',
+      value: stats.pendingSuggestions,
+      description: 'Feature requests',
+      icon: Lightbulb,
+      href: '/admin/suggestions',
+      gradient: 'from-yellow-500 to-amber-600',
+      bgGradient: 'from-yellow-500/10 to-amber-500/5',
+      iconBg: 'bg-yellow-500/10',
+      iconColor: 'text-yellow-500',
     },
   ];
 
@@ -307,7 +351,7 @@ export default function AdminDashboard() {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {statCards.map((stat, index) => (
             <motion.div
               key={stat.title}

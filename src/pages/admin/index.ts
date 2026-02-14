@@ -6,3 +6,5 @@ export { default as UsersList } from './UsersList';
 export { default as EventsList } from './EventsList';
 export { default as ImportMosques } from './ImportMosques';
 export { default as CommunityEventsList } from './CommunityEventsList';
+export { default as BugReportsList } from './BugReportsList';
+export { default as SuggestionsList } from './SuggestionsList';
