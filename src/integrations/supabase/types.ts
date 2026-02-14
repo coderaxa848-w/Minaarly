@@ -322,6 +322,69 @@ export type Database = {
           },
         ]
       }
+      issue_report_form: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          mosque_id: string | null
+          mosque_name: string | null
+          resolved: boolean
+          screenshot_1_url: string | null
+          screenshot_2_url: string | null
+          updated_at: string
+          user_id: string | null
+          video_url: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          mosque_id?: string | null
+          mosque_name?: string | null
+          resolved?: boolean
+          screenshot_1_url?: string | null
+          screenshot_2_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          mosque_id?: string | null
+          mosque_name?: string | null
+          resolved?: boolean
+          screenshot_1_url?: string | null
+          screenshot_2_url?: string | null
+          updated_at?: string
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_report_form_mosque_id_fkey"
+            columns: ["mosque_id"]
+            isOneToOne: false
+            referencedRelation: "mosques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "issue_report_form_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mosque_admins: {
         Row: {
           claimant_email: string | null
@@ -392,6 +455,7 @@ export type Database = {
           longitude: number | null
           madhab: string | null
           management: string | null
+          mosque_donation_link: string | null
           muslims_in_britain_data: boolean | null
           name: string
           parking_availability: string | null
@@ -435,6 +499,7 @@ export type Database = {
           longitude?: number | null
           madhab?: string | null
           management?: string | null
+          mosque_donation_link?: string | null
           muslims_in_britain_data?: boolean | null
           name: string
           parking_availability?: string | null
@@ -478,6 +543,7 @@ export type Database = {
           longitude?: number | null
           madhab?: string | null
           management?: string | null
+          mosque_donation_link?: string | null
           muslims_in_britain_data?: boolean | null
           name?: string
           parking_availability?: string | null
@@ -716,6 +782,99 @@ export type Database = {
           },
         ]
       }
+      submitted_mosque_data: {
+        Row: {
+          address: string | null
+          admin_notes: string | null
+          city: string | null
+          contact_page: string | null
+          county: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          facilities: string[]
+          id: string
+          languages: string[]
+          madhab: string | null
+          name: string
+          parking_options: Json
+          postcode: string | null
+          ramadan_options: Json
+          seen: boolean
+          seen_at: string | null
+          seen_by: string | null
+          services: string[]
+          social_links: Json
+          status: string
+          submitted_at: string
+          submitted_by: string | null
+          submitted_by_email: string | null
+          submitted_by_name: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          admin_notes?: string | null
+          city?: string | null
+          contact_page?: string | null
+          county?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          facilities?: string[]
+          id?: string
+          languages?: string[]
+          madhab?: string | null
+          name: string
+          parking_options?: Json
+          postcode?: string | null
+          ramadan_options?: Json
+          seen?: boolean
+          seen_at?: string | null
+          seen_by?: string | null
+          services?: string[]
+          social_links?: Json
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          admin_notes?: string | null
+          city?: string | null
+          contact_page?: string | null
+          county?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          facilities?: string[]
+          id?: string
+          languages?: string[]
+          madhab?: string | null
+          name?: string
+          parking_options?: Json
+          postcode?: string | null
+          ramadan_options?: Json
+          seen?: boolean
+          seen_at?: string | null
+          seen_by?: string | null
+          services?: string[]
+          social_links?: Json
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          submitted_by_email?: string | null
+          submitted_by_name?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -731,6 +890,45 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_suggestions: {
+        Row: {
+          accepted: boolean | null
+          area: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          picture_1: string | null
+          picture_2: string | null
+          updated_at: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          accepted?: boolean | null
+          area?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          picture_1?: string | null
+          picture_2?: string | null
+          updated_at?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          accepted?: boolean | null
+          area?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          picture_1?: string | null
+          picture_2?: string | null
+          updated_at?: string | null
+          user_email?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -783,6 +981,7 @@ export type Database = {
           longitude: number | null
           madhab: string | null
           management: string | null
+          mosque_donation_link: string | null
           muslims_in_britain_data: boolean | null
           name: string
           parking_availability: string | null
@@ -878,6 +1077,7 @@ export type Database = {
           longitude: number | null
           madhab: string | null
           management: string | null
+          mosque_donation_link: string | null
           muslims_in_britain_data: boolean | null
           name: string
           parking_availability: string | null
