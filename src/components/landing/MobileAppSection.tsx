@@ -9,7 +9,7 @@ import miniPreview from '@/assets/mini-preview.png';
 import splashScreen from '@/assets/splash.png';
 
 const appFeatures = [
-  { icon: MapPin, text: 'Search 2,000+ mosques', color: 'text-emerald-500' },
+  { icon: MapPin, text: 'Search 3,000+ mosques', color: 'text-emerald-500' },
   { icon: Clock, text: 'Live prayer & iqamah times', color: 'text-amber-500' },
   { icon: Calendar, text: 'Event & salah reminders', color: 'text-violet-500' },
   { icon: Zap, text: 'Save your favourite mosques', color: 'text-blue-500' },

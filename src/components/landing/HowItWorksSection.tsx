@@ -1,186 +1,162 @@
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { MapPin, Search, Calendar, Sparkles, MousePointer2, Zap } from 'lucide-react';
-import { useRef } from 'react';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
+import exploreScreen from '@/assets/explore.png';
+import semiPreview from '@/assets/semi-preview.png';
+import eventScreen from '@/assets/event-screen.png';
 
 const steps = [
   {
-    number: '01',
-    icon: MapPin,
-    title: 'Open the Map',
-    description: 'Launch our interactive map to instantly see mosques in your area with real-time data.',
-    color: 'from-emerald-500 to-teal-500',
-    bgColor: 'bg-emerald-500/10',
-    iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-500',
+    number: '1',
+    title: 'Find',
+    headline: 'Open the map & find mosques near you',
+    description: 'Instantly see every mosque in your area on an interactive map. No sign-up, no fuss.',
+    image: exploreScreen,
   },
   {
-    number: '02',
-    icon: Search,
-    title: 'Discover & Explore',
-    description: 'Browse detailed profiles with prayer times, facilities, and upcoming community events.',
-    color: 'from-blue-500 to-cyan-500',
-    bgColor: 'bg-blue-500/10',
-    iconBg: 'bg-gradient-to-br from-blue-500 to-cyan-500',
+    number: '2',
+    title: 'Explore',
+    headline: 'Tap a mosque to see everything',
+    description: 'Prayer times, iqamah schedules, facilities, photos, and community events — all in one place.',
+    image: semiPreview,
   },
   {
-    number: '03',
-    icon: Calendar,
-    title: 'Connect & Engage',
-    description: 'Join prayers, attend classes, and become an active part of your local masjid community.',
-    color: 'from-violet-500 to-purple-500',
-    bgColor: 'bg-violet-500/10',
-    iconBg: 'bg-gradient-to-br from-violet-500 to-purple-500',
+    number: '3',
+    title: 'Connect',
+    headline: 'Join events & stay in the loop',
+    description: 'Discover halaqas, classes, and community gatherings. Save your favourites for quick access.',
+    image: eventScreen,
   },
 ];
 
 export function HowItWorksSection() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end start"]
-  });
-  
-  const lineHeight = useTransform(scrollYProgress, [0, 0.5], ["0%", "100%"]);
+  const [activeStep, setActiveStep] = useState(0);
 
   return (
-    <section id="how-it-works" className="py-24 md:py-32 bg-white dark:bg-slate-900 relative overflow-hidden" ref={containerRef}>
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
-        <motion.div 
-          className="absolute top-1/4 right-1/4 w-2 h-2 bg-primary/40 rounded-full"
-          animate={{ y: [0, -20, 0], opacity: [0.4, 1, 0.4] }}
-          transition={{ duration: 4, repeat: Infinity }}
-        />
-        <motion.div 
-          className="absolute bottom-1/3 left-1/4 w-3 h-3 bg-emerald-400/30 rounded-full"
-          animate={{ y: [0, 15, 0], opacity: [0.3, 0.8, 0.3] }}
-          transition={{ duration: 5, repeat: Infinity, delay: 1 }}
-        />
-      </div>
-      
+    <section id="how-it-works" className="py-20 md:py-32 bg-white dark:bg-slate-950 relative overflow-hidden">
       <div className="container relative">
-        {/* Header with animated badge */}
-        <div className="max-w-3xl mx-auto text-center mb-20">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+        {/* Header — left-aligned on desktop for a modern feel */}
+        <div className="max-w-3xl mb-16 md:mb-20">
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-emerald-500/10 border border-primary/20 mb-6"
+            className="text-sm font-semibold uppercase tracking-widest text-primary mb-4"
           >
-            <Zap className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Super Simple</span>
-          </motion.div>
-          
+            How it works
+          </motion.p>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground tracking-tight leading-[1.1]"
           >
-            Get started in{' '}
-            <span className="relative inline-block">
-              <span className="relative z-10 bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent">seconds</span>
-              <motion.span 
-                className="absolute inset-0 bg-primary/10 rounded-lg -z-0"
-                initial={{ scaleX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-                style={{ originX: 0 }}
-              />
+            Three taps to your
+            <br />
+            <span className="bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent">
+              local community
             </span>
           </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto"
-          >
-            No sign-up required. Just open, explore, and connect with your community.
-          </motion.p>
         </div>
 
-        {/* Steps with animated timeline */}
-        <div className="relative max-w-5xl mx-auto">
-          {/* Vertical timeline line - desktop */}
-          <div className="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-border -translate-x-1/2">
-            <motion.div 
-              className="w-full bg-gradient-to-b from-primary via-emerald-500 to-violet-500"
-              style={{ height: lineHeight }}
-            />
+        {/* Desktop: side-by-side — clickable steps on left, phone preview on right */}
+        <div className="hidden md:grid md:grid-cols-2 gap-12 lg:gap-20 items-center max-w-6xl">
+          {/* Left — step selector */}
+          <div className="space-y-2">
+            {steps.map((step, i) => (
+              <motion.button
+                key={step.number}
+                onClick={() => setActiveStep(i)}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className={`w-full text-left p-6 rounded-2xl border transition-all duration-300 group ${
+                  activeStep === i
+                    ? 'bg-primary/5 dark:bg-primary/10 border-primary/30 shadow-lg shadow-primary/5'
+                    : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-900'
+                }`}
+              >
+                <div className="flex items-start gap-5">
+                  {/* Big number */}
+                  <span className={`text-4xl lg:text-5xl font-black leading-none transition-colors duration-300 ${
+                    activeStep === i ? 'text-primary' : 'text-slate-200 dark:text-slate-800 group-hover:text-slate-300 dark:group-hover:text-slate-700'
+                  }`}>
+                    {step.number}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`text-lg lg:text-xl font-bold mb-1.5 transition-colors duration-300 ${
+                      activeStep === i ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
+                    }`}>
+                      {step.headline}
+                    </h3>
+                    <p className={`text-sm leading-relaxed transition-all duration-300 ${
+                      activeStep === i ? 'text-muted-foreground max-h-20 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
+                    }`}>
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
+              </motion.button>
+            ))}
           </div>
 
-          {steps.map((step, index) => (
-            <motion.div
-              key={step.title}
-              initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ delay: index * 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className={`relative flex items-center gap-8 mb-16 last:mb-0 ${
-                index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'
-              }`}
-            >
-              {/* Content card */}
-              <div className={`flex-1 ${index % 2 === 0 ? 'lg:text-right' : 'lg:text-left'}`}>
-                <motion.div 
-                  className="relative p-8 rounded-3xl bg-white dark:bg-slate-800 border border-border/50 shadow-xl shadow-black/5 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 group"
-                  whileHover={{ y: -5 }}
+          {/* Right — phone preview */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="relative flex justify-center"
+          >
+            {/* Glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-primary/15 rounded-full blur-[100px]" />
+
+            <div className="relative w-56 lg:w-64">
+              {steps.map((step, i) => (
+                <motion.div
+                  key={step.number}
+                  initial={false}
+                  animate={{
+                    opacity: activeStep === i ? 1 : 0,
+                    scale: activeStep === i ? 1 : 0.95,
+                    y: activeStep === i ? 0 : 20,
+                  }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  className={`${i === 0 ? 'relative' : 'absolute inset-0'}`}
+                  style={{ pointerEvents: activeStep === i ? 'auto' : 'none' }}
                 >
-                  {/* Gradient overlay on hover */}
-                  <div className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${step.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
-                  
-                  {/* Step number badge */}
-                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${step.bgColor} mb-4`}>
-                    <span className={`text-xs font-bold bg-gradient-to-r ${step.color} bg-clip-text text-transparent`}>
-                      STEP {step.number}
-                    </span>
+                  <div className="rounded-[2.5rem] overflow-hidden border-[3px] border-slate-200 dark:border-slate-700 shadow-2xl shadow-black/10 dark:shadow-black/40 bg-slate-100 dark:bg-slate-800">
+                    <img src={step.image} alt={step.headline} className="w-full h-auto" />
                   </div>
-                  
-                  <h3 className="text-2xl font-bold text-foreground mb-3">
-                    {step.title}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed text-lg">
-                    {step.description}
-                  </p>
-
-                  {/* Decorative corner */}
-                  <div className={`absolute ${index % 2 === 0 ? 'right-4' : 'left-4'} top-4 w-20 h-20 bg-gradient-to-br ${step.color} opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity`} />
                 </motion.div>
-              </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
 
-              {/* Center icon */}
-              <div className="hidden lg:flex items-center justify-center relative z-10">
-                <motion.div 
-                  className={`w-16 h-16 rounded-2xl ${step.iconBg} shadow-lg flex items-center justify-center`}
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                >
-                  <step.icon className="h-7 w-7 text-white" />
-                </motion.div>
+        {/* Mobile: stacked cards with inline screenshots */}
+        <div className="md:hidden space-y-8">
+          {steps.map((step, i) => (
+            <motion.div
+              key={step.number}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <div className="flex items-start gap-4 mb-4">
+                <span className="text-4xl font-black text-primary leading-none">{step.number}</span>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground mb-1">{step.headline}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+                </div>
               </div>
-
-              {/* Empty space for alternating layout */}
-              <div className="hidden lg:block flex-1" />
+              <div className="w-48 mx-auto rounded-[2rem] overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+                <img src={step.image} alt={step.headline} className="w-full h-auto" />
+              </div>
             </motion.div>
           ))}
         </div>
-
-        {/* Bottom CTA hint */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mt-16"
-        >
-          <div className="inline-flex items-center gap-2 text-muted-foreground">
-            <MousePointer2 className="h-4 w-4" />
-            <span className="text-sm">Ready to explore? Scroll down to see features</span>
-          </div>
-        </motion.div>
       </div>
     </section>
   );
