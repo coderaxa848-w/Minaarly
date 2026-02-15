@@ -228,7 +228,16 @@ serve(async (req) => {
       );
     }
     const imageBuffer = await imageRes.arrayBuffer();
-    const base64Data = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+    const bytes = new Uint8Array(imageBuffer);
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      for (let j = 0; j < chunk.length; j++) {
+        binary += String.fromCharCode(chunk[j]);
+      }
+    }
+    const base64Data = btoa(binary);
     const mimeType = file_type || "image/jpeg";
 
     const geminiPayload = {
