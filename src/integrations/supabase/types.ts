@@ -385,6 +385,96 @@ export type Database = {
           },
         ]
       }
+      masjid_salah_times_weekly: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          masjid_id: string
+          masjid_name: string | null
+          month: number
+          source: string
+          updated_at: string
+          week_start_date: string
+          weekly_payload_hash: string | null
+          weekly_times: Json
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          masjid_id: string
+          masjid_name?: string | null
+          month: number
+          source?: string
+          updated_at?: string
+          week_start_date: string
+          weekly_payload_hash?: string | null
+          weekly_times: Json
+          year: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          masjid_id?: string
+          masjid_name?: string | null
+          month?: number
+          source?: string
+          updated_at?: string
+          week_start_date?: string
+          weekly_payload_hash?: string | null
+          weekly_times?: Json
+          year?: number
+        }
+        Relationships: []
+      }
+      masjid_salah_uploads: {
+        Row: {
+          created_at: string
+          file_fingerprint: string | null
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          masjid_id: string
+          masjid_name: string | null
+          parser_error: string | null
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_fingerprint?: string | null
+          file_name: string
+          file_path: string
+          file_type: string
+          id?: string
+          masjid_id: string
+          masjid_name?: string | null
+          parser_error?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_fingerprint?: string | null
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          masjid_id?: string
+          masjid_name?: string | null
+          parser_error?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       mosque_admins: {
         Row: {
           claimant_email: string | null
