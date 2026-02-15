@@ -2,3 +2,6 @@ project_id = "jiwhlklaicnzyifdwbah"
 
 [functions.import-mosques]
 verify_jwt = false
+
+[functions.extract-prayer-times]
+verify_jwt = false
