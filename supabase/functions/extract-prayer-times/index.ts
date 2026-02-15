@@ -82,11 +82,13 @@ const extractionTool = {
                           ],
                         },
                         adhan: {
-                          type: ["string", "null"],
+                          type: "string",
+                          nullable: true,
                           description: "Adhan time HH:MM or null",
                         },
                         iqamah: {
-                          type: ["string", "null"],
+                          type: "string",
+                          nullable: true,
                           description: "Iqamah time HH:MM or null",
                         },
                       },
@@ -94,7 +96,8 @@ const extractionTool = {
                     },
                   },
                   jumuah: {
-                    type: ["string", "null"],
+                    type: "string",
+                    nullable: true,
                     description: "Jumuah time HH:MM if Friday, else null",
                   },
                 },
