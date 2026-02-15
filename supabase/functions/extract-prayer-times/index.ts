@@ -214,7 +214,42 @@ serve(async (req) => {
     // Determine MIME type from file_type sent by frontend
     const mimeType = file_type || "image/jpeg";
 
-    // Direct Gemini REST API call using fileData.fileUri
+    // Step 1: Download file from Supabase and upload to Google File API
+    console.log("Downloading file from Supabase:", file_url);
+    const fileResponse = await fetch(file_url);
+    if (!fileResponse.ok) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to download file from storage" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const fileBlob = await fileResponse.blob();
+
+    console.log("Uploading to Google File API...");
+    const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${GEMINI_API_KEY}`;
+    const formData = new FormData();
+    formData.append("file", new Blob([await fileBlob.arrayBuffer()], { type: mimeType }));
+
+    const uploadRes = await fetch(uploadUrl, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      console.error("Google File API upload error:", uploadRes.status, errText);
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to upload file for AI processing" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const uploadData = await uploadRes.json();
+    const googleFileUri = uploadData.file.uri;
+    const googleFileName = uploadData.file.name;
+    console.log("File uploaded to Google:", googleFileUri);
+
+    // Step 2: Call Gemini with the Google File URI
     const geminiPayload = {
       contents: [
         {
@@ -222,7 +257,7 @@ serve(async (req) => {
             {
               fileData: {
                 mimeType: mimeType,
-                fileUri: file_url,
+                fileUri: googleFileUri,
               },
             },
             {
@@ -331,7 +366,20 @@ serve(async (req) => {
       ...validationWarnings,
     ];
 
-    // Delete temp file from storage
+    // Delete Google File API upload
+    try {
+      if (googleFileName) {
+        await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/${googleFileName}?key=${GEMINI_API_KEY}`,
+          { method: "DELETE" }
+        );
+        console.log("Deleted Google file:", googleFileName);
+      }
+    } catch (e) {
+      console.error("Failed to delete Google file:", e);
+    }
+
+    // Delete temp file from Supabase storage
     try {
       const urlPath = new URL(file_url).pathname;
       const match = urlPath.match(/\/temp-uploads\/(.+)$/);
