@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GEMINI_MODEL = "gemini-2.0-flash-exp";
+const GEMINI_MODEL = "gemini-2.0-flash";
 
 function buildPrompt(madhab_preference: string | null, mode: string): string {
   return `You are an expert at reading Islamic prayer timetables from images and PDFs.
