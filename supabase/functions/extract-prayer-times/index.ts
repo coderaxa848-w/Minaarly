@@ -219,15 +219,27 @@ serve(async (req) => {
     // Call Gemini
     const prompt = buildPrompt(madhab_preference || null, mode || "single");
 
+    // Download the image and convert to base64 (Gemini can't access external URLs via fileUri)
+    const imageRes = await fetch(file_url);
+    if (!imageRes.ok) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to download uploaded file" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const imageBuffer = await imageRes.arrayBuffer();
+    const base64Data = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+    const mimeType = file_type || "image/jpeg";
+
     const geminiPayload = {
       contents: [
         {
           role: "user",
           parts: [
             {
-              fileData: {
-                fileUri: file_url,
-                mimeType: file_type || "image/jpeg",
+              inlineData: {
+                data: base64Data,
+                mimeType: mimeType,
               },
             },
             { text: prompt },
@@ -237,6 +249,9 @@ serve(async (req) => {
       tools: [{ functionDeclarations: [extractionTool.function] }],
       toolConfig: {
         functionCallingConfig: { mode: "ANY" },
+      },
+      generationConfig: {
+        maxOutputTokens: 8192,
       },
     };
 
