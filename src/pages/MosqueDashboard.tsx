@@ -18,6 +18,37 @@ import { toast } from '@/hooks/use-toast';
 import { Building, Clock, Calendar, MapPin, Phone, Mail, Globe, Edit, Plus, Trash2, Save, CheckCircle, Users, Heart, Moon, Link as LinkIcon, ArrowRight, Upload, FileImage, Loader2, AlertTriangle, X } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
+/** Compress image files using Canvas API before upload. Skips PDFs. */
+async function compressImage(file: File, maxDim = 1920, quality = 0.6): Promise<File> {
+  if (!file.type.startsWith('image/')) return file;
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > maxDim || height > maxDim) {
+        const ratio = Math.min(maxDim / width, maxDim / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return reject(new Error('Compression failed'));
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+        },
+        'image/jpeg',
+        quality,
+      );
+    };
+    img.onerror = () => reject(new Error('Failed to load image for compression'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 type Mosque = Tables<'mosques'>;
 type IqamahTimes = Tables<'iqamah_times'>;
 type MosqueEvent = Tables<'events'>;
@@ -112,11 +143,13 @@ export default function MosqueDashboard() {
     setExtractedWarnings([]);
 
     try {
-      const fileExt = uploadFile.name.split('.').pop();
+      // Compress images before upload (skip PDFs)
+      const fileToUpload = await compressImage(uploadFile);
+      const fileExt = fileToUpload.name.split('.').pop();
       const fileName = `${mosqueId}-${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from('temp-uploads')
-        .upload(fileName, uploadFile);
+        .upload(fileName, fileToUpload);
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
       const { data: urlData } = supabase.storage
@@ -126,7 +159,7 @@ export default function MosqueDashboard() {
       const { data: fnData, error: fnError } = await supabase.functions.invoke('extract-prayer-times', {
         body: {
           file_url: urlData.publicUrl,
-          file_type: uploadFile.type,
+          file_type: fileToUpload.type,
           mosque_id: mosqueId,
           mosque_name: mosqueName,
           madhab_preference: uploadMadhab || null,
