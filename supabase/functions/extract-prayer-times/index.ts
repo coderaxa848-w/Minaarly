@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -228,16 +229,7 @@ serve(async (req) => {
       );
     }
     const imageBuffer = await imageRes.arrayBuffer();
-    const bytes = new Uint8Array(imageBuffer);
-    let binary = "";
-    const chunkSize = 8192;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-      for (let j = 0; j < chunk.length; j++) {
-        binary += String.fromCharCode(chunk[j]);
-      }
-    }
-    const base64Data = btoa(binary);
+    const base64Data = encodeBase64(imageBuffer);
     const mimeType = file_type || "image/jpeg";
 
     const geminiPayload = {
