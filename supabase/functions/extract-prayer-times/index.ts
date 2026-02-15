@@ -34,94 +34,92 @@ ${mode === "bulk" ? "This may contain multiple months. Extract ALL months found.
 IMPORTANT: Call the extract_prayer_times function with your results.`;
 }
 
+// Gemini-native functionDeclarations format
 const extractionTool = {
-  type: "function" as const,
-  function: {
-    name: "extract_prayer_times",
-    description: "Submit the extracted prayer timetable data",
-    parameters: {
-      type: "object",
-      properties: {
-        month: {
-          type: "string",
-          description: "Month name e.g. January, February, Ramadan",
-        },
-        year: { type: "integer", description: "Year e.g. 2026" },
-        monthly_times: {
-          type: "object",
-          properties: {
-            days: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  date: {
-                    type: "string",
-                    description: "Date in YYYY-MM-DD format",
-                  },
-                  day: {
-                    type: "string",
-                    description: "Day of week lowercase",
-                  },
-                  prayers: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        prayer: {
-                          type: "string",
-                          enum: [
-                            "fajr",
-                            "sunrise",
-                            "dhuhr",
-                            "asr",
-                            "maghrib",
-                            "isha",
-                          ],
-                        },
-                        adhan: {
-                          type: ["string", "null"],
-                          description: "Adhan time HH:MM or null",
-                        },
-                        iqamah: {
-                          type: ["string", "null"],
-                          description: "Iqamah time HH:MM or null",
-                        },
+  name: "extract_prayer_times",
+  description: "Submit the extracted prayer timetable data",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      month: {
+        type: "STRING",
+        description: "Month name e.g. January, February, Ramadan",
+      },
+      year: { type: "INTEGER", description: "Year e.g. 2026" },
+      monthly_times: {
+        type: "OBJECT",
+        properties: {
+          days: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                date: {
+                  type: "STRING",
+                  description: "Date in YYYY-MM-DD format",
+                },
+                day: {
+                  type: "STRING",
+                  description: "Day of week lowercase",
+                },
+                prayers: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      prayer: {
+                        type: "STRING",
+                        enum: [
+                          "fajr",
+                          "sunrise",
+                          "dhuhr",
+                          "asr",
+                          "maghrib",
+                          "isha",
+                        ],
                       },
-                      required: ["prayer", "adhan", "iqamah"],
+                      adhan: {
+                        type: "STRING",
+                        description: "Adhan time HH:MM or empty string if not shown",
+                      },
+                      iqamah: {
+                        type: "STRING",
+                        description: "Iqamah time HH:MM or empty string if not shown",
+                      },
                     },
-                  },
-                  jumuah: {
-                    type: ["string", "null"],
-                    description: "Jumuah time HH:MM if Friday, else null",
+                    required: ["prayer", "adhan", "iqamah"],
                   },
                 },
-                required: ["date", "day", "prayers"],
+                jumuah: {
+                  type: "STRING",
+                  description: "Jumuah time HH:MM if Friday, else empty string",
+                },
               },
-            },
-          },
-          required: ["days"],
-        },
-        special_dates: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              date: { type: "string" },
-              name: { type: "string" },
-              notes: { type: "string" },
+              required: ["date", "day", "prayers"],
             },
           },
         },
-        warnings: {
-          type: "array",
-          items: { type: "string" },
-          description:
-            "Any warnings about missing data, unreadable times, or assumptions made",
+        required: ["days"],
+      },
+      special_dates: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: {
+            date: { type: "STRING" },
+            name: { type: "STRING" },
+            notes: { type: "STRING" },
+          },
         },
       },
-      required: ["month", "year", "monthly_times", "warnings"],
+      warnings: {
+        type: "ARRAY",
+        items: { type: "STRING" },
+        description:
+          "Any warnings about missing data, unreadable times, or assumptions made",
+      },
     },
+    required: ["month", "year", "monthly_times", "warnings"],
   },
 };
 
@@ -202,10 +200,10 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: "LOVABLE_API_KEY not configured" }),
+        JSON.stringify({ success: false, error: "GEMINI_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -213,52 +211,58 @@ serve(async (req) => {
     // Build prompt
     const prompt = buildPrompt(madhab_preference || null, mode || "single");
 
-    // Use Lovable AI Gateway (OpenAI-compatible) - passes image URL directly, no download needed
-    const gatewayPayload = {
-      model: "google/gemini-2.5-flash",
-      messages: [
+    // Determine MIME type from file_type sent by frontend
+    const mimeType = file_type || "image/jpeg";
+
+    // Direct Gemini REST API call using fileData.fileUri
+    const geminiPayload = {
+      contents: [
         {
-          role: "user",
-          content: [
+          parts: [
             {
-              type: "image_url",
-              image_url: { url: file_url },
+              fileData: {
+                mimeType: mimeType,
+                fileUri: file_url,
+              },
             },
             {
-              type: "text",
               text: prompt,
             },
           ],
         },
       ],
-      tools: [extractionTool],
-      tool_choice: { type: "function", function: { name: "extract_prayer_times" } },
-      max_tokens: 8192,
+      tools: [
+        {
+          functionDeclarations: [extractionTool],
+        },
+      ],
+      tool_config: {
+        function_calling_config: {
+          mode: "ANY",
+          allowed_function_names: ["extract_prayer_times"],
+        },
+      },
+      generationConfig: {
+        maxOutputTokens: 8192,
+      },
     };
 
-    const gatewayRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`;
+
+    const geminiRes = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(gatewayPayload),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(geminiPayload),
     });
 
-    if (!gatewayRes.ok) {
-      const errText = await gatewayRes.text();
-      console.error("AI Gateway error:", gatewayRes.status, errText);
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      console.error("Gemini API error:", geminiRes.status, errText);
 
-      if (gatewayRes.status === 429) {
+      if (geminiRes.status === 429) {
         return new Response(
           JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again in a minute." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (gatewayRes.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: "AI credits exhausted. Please add credits." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -268,13 +272,14 @@ serve(async (req) => {
       );
     }
 
-    const gatewayData = await gatewayRes.json();
+    const geminiData = await geminiRes.json();
 
-    // Extract tool call result (OpenAI format)
-    const toolCall = gatewayData.choices?.[0]?.message?.tool_calls?.[0];
+    // Parse Gemini native response format
+    const functionCall =
+      geminiData.candidates?.[0]?.content?.parts?.[0]?.functionCall;
 
-    if (!toolCall || toolCall.function?.name !== "extract_prayer_times") {
-      console.error("No tool call in AI response:", JSON.stringify(gatewayData));
+    if (!functionCall || functionCall.name !== "extract_prayer_times") {
+      console.error("No function call in Gemini response:", JSON.stringify(geminiData));
       return new Response(
         JSON.stringify({
           success: false,
@@ -284,15 +289,28 @@ serve(async (req) => {
       );
     }
 
-    let extracted;
-    try {
-      extracted = JSON.parse(toolCall.function.arguments);
-    } catch {
-      console.error("Failed to parse tool call arguments:", toolCall.function.arguments);
+    // Gemini returns args as an object directly (not a JSON string)
+    const extracted = functionCall.args;
+
+    if (!extracted || !extracted.monthly_times) {
+      console.error("Invalid extracted data:", JSON.stringify(functionCall));
       return new Response(
         JSON.stringify({ success: false, error: "AI returned invalid data. Please try again." }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Normalise empty strings to null for consistency
+    if (extracted.monthly_times?.days) {
+      for (const day of extracted.monthly_times.days) {
+        if (day.prayers) {
+          for (const p of day.prayers) {
+            if (p.adhan === "") p.adhan = null;
+            if (p.iqamah === "") p.iqamah = null;
+          }
+          if (day.jumuah === "") day.jumuah = null;
+        }
+      }
     }
 
     // Validate extracted data
