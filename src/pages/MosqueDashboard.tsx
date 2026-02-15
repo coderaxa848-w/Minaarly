@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout';
 import { useMosqueAdminCheck } from '@/hooks/useMosqueAdminCheck';
@@ -13,8 +13,9 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
-import { Building, Clock, Calendar, MapPin, Phone, Mail, Globe, Edit, Plus, Trash2, Save, CheckCircle, Users, Heart, Moon, Link as LinkIcon, ArrowRight } from 'lucide-react';
+import { Building, Clock, Calendar, MapPin, Phone, Mail, Globe, Edit, Plus, Trash2, Save, CheckCircle, Users, Heart, Moon, Link as LinkIcon, ArrowRight, Upload, FileImage, Loader2, AlertTriangle, X } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Mosque = Tables<'mosques'>;
@@ -41,6 +42,16 @@ export default function MosqueDashboard() {
     title: '', description: '', event_date: '', start_time: '', end_time: '',
     category: 'other' as const, guest_speaker: '', topic: '',
   });
+
+  // Timetable upload states
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadMonth, setUploadMonth] = useState('');
+  const [uploadYear, setUploadYear] = useState(new Date().getFullYear().toString());
+  const [uploadMadhab, setUploadMadhab] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [extractedWarnings, setExtractedWarnings] = useState<string[]>([]);
+  const [existingMonths, setExistingMonths] = useState<Array<{ month: number; year: number; id: string }>>([]);
 
   useEffect(() => {
     if (adminLoading) return;
@@ -69,6 +80,7 @@ export default function MosqueDashboard() {
     if (mosqueRes.data) {
       setMosque(mosqueRes.data);
       setEditForm(mosqueRes.data);
+      setUploadMadhab(mosqueRes.data.madhab || '');
     }
     if (iqamahRes.data) {
       setIqamah(iqamahRes.data);
@@ -76,6 +88,124 @@ export default function MosqueDashboard() {
     }
     setEvents(eventsRes.data || []);
     setLoading(false);
+    fetchExistingMonths();
+  }
+
+  async function fetchExistingMonths() {
+    if (!mosqueId) return;
+    const { data } = await supabase
+      .from('masjid_salah_times_monthly' as any)
+      .select('id, month, year')
+      .eq('masjid_id', mosqueId)
+      .order('year', { ascending: false })
+      .order('month', { ascending: false });
+    setExistingMonths((data as any) || []);
+  }
+
+  async function handleExtract() {
+    if (!uploadFile || !mosqueId || !uploadMonth || !uploadYear) {
+      toast({ title: 'Missing info', description: 'Please select a file, month, and year.', variant: 'destructive' });
+      return;
+    }
+    setExtracting(true);
+    setExtractedData(null);
+    setExtractedWarnings([]);
+
+    try {
+      const fileExt = uploadFile.name.split('.').pop();
+      const fileName = `${mosqueId}-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('temp-uploads')
+        .upload(fileName, uploadFile);
+      if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+      const { data: urlData } = supabase.storage
+        .from('temp-uploads')
+        .getPublicUrl(fileName);
+
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('extract-prayer-times', {
+        body: {
+          file_url: urlData.publicUrl,
+          file_type: uploadFile.type,
+          mosque_id: mosqueId,
+          mosque_name: mosqueName,
+          madhab_preference: uploadMadhab || null,
+          mode: 'single',
+        },
+      });
+
+      if (fnError) throw new Error(fnError.message);
+      if (!fnData?.success) throw new Error(fnData?.error || 'Extraction failed');
+
+      setExtractedData(fnData.extracted);
+      setExtractedWarnings(fnData.extracted.warnings || []);
+      toast({ title: 'Extraction complete', description: `Extracted ${fnData.extracted.monthly_times?.days?.length || 0} days of prayer times.` });
+    } catch (e: any) {
+      console.error('Extraction error:', e);
+      toast({ title: 'Extraction failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  function updateExtractedTime(dayIndex: number, prayerIndex: number, field: 'adhan' | 'iqamah', value: string) {
+    if (!extractedData) return;
+    const updated = JSON.parse(JSON.stringify(extractedData));
+    updated.monthly_times.days[dayIndex].prayers[prayerIndex][field] = value || null;
+    setExtractedData(updated);
+  }
+
+  async function saveExtractedTimes() {
+    if (!extractedData || !mosqueId) return;
+    setSaving(true);
+    try {
+      const monthNum = ['january','february','march','april','may','june','july','august','september','october','november','december']
+        .indexOf(extractedData.month.toLowerCase()) + 1;
+
+      const payload = {
+        masjid_id: mosqueId,
+        masjid_name: mosqueName,
+        month: monthNum || parseInt(uploadMonth),
+        year: parseInt(uploadYear) || extractedData.year,
+        monthly_times: extractedData.monthly_times,
+        special_dates: extractedData.special_dates?.length ? extractedData.special_dates : null,
+        madhab_preference: uploadMadhab || null,
+        source: 'ai_extracted',
+        created_by: (await supabase.auth.getUser()).data.user?.id || null,
+      };
+
+      const existing = existingMonths.find(
+        (m) => m.month === payload.month && m.year === payload.year
+      );
+
+      let error;
+      if (existing) {
+        ({ error } = await supabase.from('masjid_salah_times_monthly' as any).update(payload).eq('id', existing.id));
+      } else {
+        ({ error } = await supabase.from('masjid_salah_times_monthly' as any).insert(payload));
+      }
+
+      if (error) throw new Error(error.message);
+
+      toast({ title: 'Saved!', description: `Prayer times for ${extractedData.month} ${extractedData.year} published.` });
+      setExtractedData(null);
+      setUploadFile(null);
+      fetchExistingMonths();
+    } catch (e: any) {
+      toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteMonth(id: string) {
+    const { error } = await supabase.from('masjid_salah_times_monthly' as any).delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Deleted', description: 'Month data removed.' });
+      fetchExistingMonths();
+    }
   }
 
   async function saveDetails() {
@@ -448,27 +578,220 @@ export default function MosqueDashboard() {
 
           {/* Prayer Times Tab */}
           <TabsContent value="prayer">
-            <Card>
-              <CardHeader>
-                <CardTitle>Iqamah Times</CardTitle>
-                <CardDescription>Set your mosque's iqamah times. Toggle API times off to use manual overrides.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <Switch checked={iqamahForm.use_api_times ?? true} onCheckedChange={v => setIqamahForm(f => ({ ...f, use_api_times: v }))} />
-                  <Label>Use API-calculated times</Label>
-                </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  {['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah'].map(prayer => (
-                    <div key={prayer}>
-                      <Label className="capitalize">{prayer}</Label>
-                      <Input type="time" value={(iqamahForm as any)[prayer] || ''} onChange={e => setIqamahForm(f => ({ ...f, [prayer]: e.target.value }))} />
+            <div className="space-y-6">
+              {/* Quick Iqamah Times */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Iqamah Times</CardTitle>
+                  <CardDescription>Set today's iqamah times manually.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Switch checked={iqamahForm.use_api_times ?? true} onCheckedChange={v => setIqamahForm(f => ({ ...f, use_api_times: v }))} />
+                    <Label>Use API-calculated times</Label>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah'].map(prayer => (
+                      <div key={prayer}>
+                        <Label className="capitalize">{prayer}</Label>
+                        <Input type="time" value={(iqamahForm as any)[prayer] || ''} onChange={e => setIqamahForm(f => ({ ...f, [prayer]: e.target.value }))} />
+                      </div>
+                    ))}
+                  </div>
+                  <Button onClick={savePrayerTimes} disabled={saving}><Save className="h-4 w-4 mr-2" />{saving ? 'Saving...' : 'Save Prayer Times'}</Button>
+                </CardContent>
+              </Card>
+
+              <Separator />
+
+              {/* Monthly Timetable Upload */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5 text-primary" /> Upload Monthly Timetable</CardTitle>
+                  <CardDescription>Upload a photo or PDF of your printed prayer timetable. AI will extract all prayer times automatically.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!extractedData ? (
+                    <>
+                      {/* File Input */}
+                      <div>
+                        <Label>Timetable Image or PDF</Label>
+                        <div className="mt-1">
+                          <label className="flex items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer border-muted-foreground/25 hover:border-primary/50 transition-colors bg-muted/20">
+                            <div className="text-center">
+                              <FileImage className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                              <p className="text-sm text-muted-foreground">
+                                {uploadFile ? uploadFile.name : 'Click to select JPG, PNG, WEBP, or PDF'}
+                              </p>
+                            </div>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/jpeg,image/png,image/webp,application/pdf"
+                              onChange={e => setUploadFile(e.target.files?.[0] || null)}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Month/Year/Madhab */}
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div>
+                          <Label>Month</Label>
+                          <select
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={uploadMonth}
+                            onChange={e => setUploadMonth(e.target.value)}
+                          >
+                            <option value="">Select month...</option>
+                            {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                              <option key={m} value={String(i + 1)}>{m}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <Label>Year</Label>
+                          <Input type="number" value={uploadYear} onChange={e => setUploadYear(e.target.value)} min="2024" max="2030" />
+                        </div>
+                        <div>
+                          <Label>Madhab (for Asr)</Label>
+                          <select
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={uploadMadhab}
+                            onChange={e => setUploadMadhab(e.target.value)}
+                          >
+                            <option value="">Not specified</option>
+                            <option value="hanafi">Hanafi</option>
+                            <option value="shafi">Shafi'i</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <Button onClick={handleExtract} disabled={extracting || !uploadFile || !uploadMonth || !uploadYear}>
+                        {extracting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Extracting times...</> : <><Upload className="h-4 w-4 mr-2" /> Extract Times</>}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {/* Review Header */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-foreground">Review: {extractedData.month} {extractedData.year}</h3>
+                          <p className="text-sm text-muted-foreground">{extractedData.monthly_times?.days?.length || 0} days extracted. Click any cell to edit.</p>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => { setExtractedData(null); setUploadFile(null); }}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* Warnings */}
+                      {extractedWarnings.length > 0 && (
+                        <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                            <span className="text-sm font-medium text-yellow-700">Warnings ({extractedWarnings.length})</span>
+                          </div>
+                          <ul className="text-xs text-yellow-700 space-y-1">
+                            {extractedWarnings.map((w, i) => <li key={i}>• {w}</li>)}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Review Table */}
+                      <div className="overflow-x-auto border rounded-lg">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-24">Date</TableHead>
+                              <TableHead className="w-16">Day</TableHead>
+                              <TableHead>Fajr</TableHead>
+                              <TableHead>Sunrise</TableHead>
+                              <TableHead>Dhuhr</TableHead>
+                              <TableHead>Asr</TableHead>
+                              <TableHead>Maghrib</TableHead>
+                              <TableHead>Isha</TableHead>
+                              <TableHead>Jumuah</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {extractedData.monthly_times?.days?.map((day: any, di: number) => {
+                              const hasWarning = extractedWarnings.some(w => w.includes(day.date));
+                              return (
+                                <TableRow key={di} className={hasWarning ? 'bg-yellow-500/5' : ''}>
+                                  <TableCell className="font-mono text-xs">{day.date?.slice(5)}</TableCell>
+                                  <TableCell className="text-xs capitalize">{day.day?.slice(0, 3)}</TableCell>
+                                  {['fajr','sunrise','dhuhr','asr','maghrib','isha'].map((prayer, pi) => {
+                                    const p = day.prayers?.find((pr: any) => pr.prayer === prayer);
+                                    return (
+                                      <TableCell key={prayer} className="p-1">
+                                        <div className="space-y-0.5">
+                                          <Input
+                                            className="h-7 text-xs px-1 w-16"
+                                            value={p?.adhan || ''}
+                                            onChange={e => {
+                                              const idx = day.prayers?.findIndex((pr: any) => pr.prayer === prayer);
+                                              if (idx >= 0) updateExtractedTime(di, idx, 'adhan', e.target.value);
+                                            }}
+                                            placeholder="Adhan"
+                                          />
+                                          {prayer !== 'sunrise' && (
+                                            <Input
+                                              className="h-7 text-xs px-1 w-16 bg-primary/5"
+                                              value={p?.iqamah || ''}
+                                              onChange={e => {
+                                                const idx = day.prayers?.findIndex((pr: any) => pr.prayer === prayer);
+                                                if (idx >= 0) updateExtractedTime(di, idx, 'iqamah', e.target.value);
+                                              }}
+                                              placeholder="Iqamah"
+                                            />
+                                          )}
+                                        </div>
+                                      </TableCell>
+                                    );
+                                  })}
+                                  <TableCell className="text-xs font-mono">{day.jumuah || '—'}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button onClick={saveExtractedTimes} disabled={saving}>
+                          <Save className="h-4 w-4 mr-2" />{saving ? 'Saving...' : 'Save & Publish'}
+                        </Button>
+                        <Button variant="outline" onClick={() => { setExtractedData(null); setUploadFile(null); }}>Cancel</Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Existing Months */}
+              {existingMonths.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Uploaded Months</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {existingMonths.map(m => {
+                        const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        return (
+                          <div key={m.id} className="flex items-center gap-1">
+                            <Badge variant="secondary">{monthNames[m.month]} {m.year}</Badge>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => deleteMonth(m.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-                <Button onClick={savePrayerTimes} disabled={saving}><Save className="h-4 w-4 mr-2" />{saving ? 'Saving...' : 'Save Prayer Times'}</Button>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
 
           {/* Events Tab */}
