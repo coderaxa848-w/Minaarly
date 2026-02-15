@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as encodeBase64 } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -7,8 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const GEMINI_MODEL = "gemini-2.0-flash";
 
 function buildPrompt(madhab_preference: string | null, mode: string): string {
   return `You are an expert at reading Islamic prayer timetables from images and PDFs.
@@ -83,13 +80,11 @@ const extractionTool = {
                           ],
                         },
                         adhan: {
-                          type: "string",
-                          nullable: true,
+                          type: ["string", "null"],
                           description: "Adhan time HH:MM or null",
                         },
                         iqamah: {
-                          type: "string",
-                          nullable: true,
+                          type: ["string", "null"],
                           description: "Iqamah time HH:MM or null",
                         },
                       },
@@ -97,8 +92,7 @@ const extractionTool = {
                     },
                   },
                   jumuah: {
-                    type: "string",
-                    nullable: true,
+                    type: ["string", "null"],
                     description: "Jumuah time HH:MM if Friday, else null",
                   },
                 },
@@ -156,7 +150,6 @@ function validateDayOrder(
     }
   }
 
-  // Check invalid format
   for (const p of prayers) {
     if (p.adhan && !validateTime(p.adhan)) {
       warnings.push(`Invalid adhan time format for ${p.prayer}: ${p.adhan}`);
@@ -209,69 +202,63 @@ serve(async (req) => {
       );
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: "GEMINI_API_KEY not configured" }),
+        JSON.stringify({ success: false, error: "LOVABLE_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Call Gemini
+    // Build prompt
     const prompt = buildPrompt(madhab_preference || null, mode || "single");
 
-    // Download the image and convert to base64 (Gemini can't access external URLs via fileUri)
-    const imageRes = await fetch(file_url);
-    if (!imageRes.ok) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to download uploaded file" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    const imageBuffer = await imageRes.arrayBuffer();
-    const base64Data = encodeBase64(imageBuffer);
-    const mimeType = file_type || "image/jpeg";
-
-    const geminiPayload = {
-      contents: [
+    // Use Lovable AI Gateway (OpenAI-compatible) - passes image URL directly, no download needed
+    const gatewayPayload = {
+      model: "google/gemini-2.5-flash",
+      messages: [
         {
           role: "user",
-          parts: [
+          content: [
             {
-              inlineData: {
-                data: base64Data,
-                mimeType: mimeType,
-              },
+              type: "image_url",
+              image_url: { url: file_url },
             },
-            { text: prompt },
+            {
+              type: "text",
+              text: prompt,
+            },
           ],
         },
       ],
-      tools: [{ functionDeclarations: [extractionTool.function] }],
-      toolConfig: {
-        functionCallingConfig: { mode: "ANY" },
-      },
-      generationConfig: {
-        maxOutputTokens: 8192,
-      },
+      tools: [extractionTool],
+      tool_choice: { type: "function", function: { name: "extract_prayer_times" } },
+      max_tokens: 8192,
     };
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-
-    const geminiRes = await fetch(geminiUrl, {
+    const gatewayRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiPayload),
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(gatewayPayload),
     });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error("Gemini API error:", geminiRes.status, errText);
+    if (!gatewayRes.ok) {
+      const errText = await gatewayRes.text();
+      console.error("AI Gateway error:", gatewayRes.status, errText);
 
-      if (geminiRes.status === 429) {
+      if (gatewayRes.status === 429) {
         return new Response(
           JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again in a minute." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (gatewayRes.status === 402) {
+        return new Response(
+          JSON.stringify({ success: false, error: "AI credits exhausted. Please add credits." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -281,15 +268,13 @@ serve(async (req) => {
       );
     }
 
-    const geminiData = await geminiRes.json();
+    const gatewayData = await gatewayRes.json();
 
-    // Extract function call result
-    const candidate = geminiData.candidates?.[0];
-    const parts = candidate?.content?.parts;
-    const functionCall = parts?.find((p: any) => p.functionCall);
+    // Extract tool call result (OpenAI format)
+    const toolCall = gatewayData.choices?.[0]?.message?.tool_calls?.[0];
 
-    if (!functionCall) {
-      console.error("No function call in Gemini response:", JSON.stringify(geminiData));
+    if (!toolCall || toolCall.function?.name !== "extract_prayer_times") {
+      console.error("No tool call in AI response:", JSON.stringify(gatewayData));
       return new Response(
         JSON.stringify({
           success: false,
@@ -299,7 +284,16 @@ serve(async (req) => {
       );
     }
 
-    const extracted = functionCall.functionCall.args;
+    let extracted;
+    try {
+      extracted = JSON.parse(toolCall.function.arguments);
+    } catch {
+      console.error("Failed to parse tool call arguments:", toolCall.function.arguments);
+      return new Response(
+        JSON.stringify({ success: false, error: "AI returned invalid data. Please try again." }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Validate extracted data
     const validationWarnings: string[] = [];
@@ -314,7 +308,6 @@ serve(async (req) => {
       }
     }
 
-    // Merge AI warnings with validation warnings
     const allWarnings = [
       ...(extracted.warnings || []),
       ...validationWarnings,
@@ -331,7 +324,6 @@ serve(async (req) => {
       }
     } catch (e) {
       console.error("Failed to delete temp file:", e);
-      // Non-fatal, continue
     }
 
     return new Response(
