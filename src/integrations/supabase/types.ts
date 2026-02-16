@@ -430,6 +430,62 @@ export type Database = {
         }
         Relationships: []
       }
+      masjid_salah_times_submissions: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          masjid_id: string
+          masjid_name: string | null
+          month: number
+          monthly_times: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string | null
+          status: string | null
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          masjid_id: string
+          masjid_name?: string | null
+          month: number
+          monthly_times: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          masjid_id?: string
+          masjid_name?: string | null
+          month?: number
+          monthly_times?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "masjid_salah_times_submissions_masjid_id_fkey"
+            columns: ["masjid_id"]
+            isOneToOne: false
+            referencedRelation: "mosques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mosque_admins: {
         Row: {
           claimant_email: string | null
