@@ -18,6 +18,18 @@ Extract ALL prayer times from this timetable image. For each day shown, extract:
 - Jumuah (Friday prayer) time if shown for that day
 - All times must be in 24-hour HH:MM format
 
+TERMINOLOGY AWARENESS — timetables use many different terms for the same concept:
+- "Iqamah" may also appear as "Jamah", "Jama'at", "Jamat", "Jamaat", "Congregation", "Iqama", or "Ikamah". These ALL mean Iqamah — map them to the iqamah field.
+- "Adhan" may also appear as "Athan", "Azan", "Azaan", "Start", "Start Time", "Begins", "Begin", or "Salah Time". These ALL mean Adhan — map them to the adhan field.
+- "Dhuhr" may also appear as "Zuhr", "Zohr", or "Thuhr". Map to dhuhr.
+- "Maghrib" may also appear as "Magrib" or "Iftar" (during Ramadan). Map to maghrib.
+- "Isha" may also appear as "Esha" or "Ishaa". Map to isha.
+- "Fajr" may also appear as "Fajar" or "Subah". Map to fajr.
+- "Jumuah" may also appear as "Jummah", "Jumu'ah", or "Friday Prayer". Map to jumuah.
+
+If a timetable has columns like "Start" and "Jamat", treat "Start" as adhan and "Jamat" as iqamah.
+If a timetable only shows ONE time per prayer (no separate start/jamat columns), put that time in the iqamah field and leave adhan as empty string.
+
 ${madhab_preference ? `This mosque follows the ${madhab_preference} madhab. If there are two Asr times shown, use the ${madhab_preference === "hanafi" ? "later (Hanafi)" : "earlier (Shafi'i)"} Asr time.` : "If there are two Asr times (Hanafi/Shafi), extract both and note in warnings."}
 
 Special instructions:
