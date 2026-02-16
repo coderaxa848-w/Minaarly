@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bug, CheckCircle2, Clock, Image, Video, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bug, CheckCircle2, Image, Video, ChevronDown, ChevronUp, Trash2, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface BugReport {
   id: string;
@@ -19,6 +31,8 @@ interface BugReport {
   created_at: string;
   updated_at: string;
   user_id: string | null;
+  admin_comment: string | null;
+  is_read: boolean;
 }
 
 export default function BugReportsList() {
@@ -26,6 +40,8 @@ export default function BugReportsList() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'open' | 'resolved'>('all');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState('');
 
   useEffect(() => {
     fetchReports();
@@ -40,7 +56,7 @@ export default function BugReportsList() {
     if (error) {
       console.error('Error fetching bug reports:', error);
     } else {
-      setReports(data || []);
+      setReports((data as unknown as BugReport[]) || []);
     }
     setLoading(false);
   }
@@ -48,7 +64,7 @@ export default function BugReportsList() {
   async function toggleResolved(id: string, currentStatus: boolean) {
     const { error } = await supabase
       .from('issue_report_form')
-      .update({ resolved: !currentStatus })
+      .update({ resolved: !currentStatus } as never)
       .eq('id', id);
 
     if (error) {
@@ -56,6 +72,49 @@ export default function BugReportsList() {
     } else {
       setReports(prev => prev.map(r => r.id === id ? { ...r, resolved: !currentStatus } : r));
       toast({ title: 'Updated', description: `Report marked as ${!currentStatus ? 'resolved' : 'open'}` });
+    }
+  }
+
+  async function deleteReport(id: string) {
+    const { error } = await supabase
+      .from('issue_report_form')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to delete report', variant: 'destructive' });
+    } else {
+      setReports(prev => prev.filter(r => r.id !== id));
+      toast({ title: 'Deleted', description: 'Bug report removed' });
+    }
+  }
+
+  async function markAsRead(id: string) {
+    const { error } = await supabase
+      .from('issue_report_form')
+      .update({ is_read: true } as never)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error marking as read:', error);
+    } else {
+      setReports(prev => prev.map(r => r.id === id ? { ...r, is_read: true } : r));
+    }
+  }
+
+  async function saveAdminComment(id: string) {
+    const { error } = await supabase
+      .from('issue_report_form')
+      .update({ admin_comment: commentDraft } as never)
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to save comment', variant: 'destructive' });
+    } else {
+      setReports(prev => prev.map(r => r.id === id ? { ...r, admin_comment: commentDraft } : r));
+      setEditingCommentId(null);
+      setCommentDraft('');
+      toast({ title: 'Saved', description: 'Admin comment updated' });
     }
   }
 
@@ -129,11 +188,23 @@ export default function BugReportsList() {
               ) : (
                 filtered.map(report => (
                   <>
-                    <TableRow key={report.id} className="cursor-pointer" onClick={() => setExpandedId(expandedId === report.id ? null : report.id)}>
+                    <TableRow 
+                      key={report.id} 
+                      className="cursor-pointer" 
+                      onClick={() => {
+                        setExpandedId(expandedId === report.id ? null : report.id);
+                        if (!report.is_read) markAsRead(report.id);
+                      }}
+                    >
                       <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {report.category || 'General'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {!report.is_read && (
+                            <Circle className="h-2.5 w-2.5 fill-blue-500 text-blue-500" />
+                          )}
+                          <Badge variant="outline" className="capitalize">
+                            {report.category || 'General'}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         {report.description || 'No description'}
@@ -168,6 +239,35 @@ export default function BugReportsList() {
                             <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                             {report.resolved ? 'Reopen' : 'Resolve'}
                           </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Bug Report?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete this bug report. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-500 hover:bg-red-600"
+                                  onClick={() => deleteReport(report.id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                           {expandedId === report.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </div>
                       </TableCell>
@@ -202,6 +302,46 @@ export default function BugReportsList() {
                                 </div>
                               </div>
                             )}
+                            {/* Admin Comment Section */}
+                            <div className="border-t pt-4">
+                              <h4 className="text-sm font-semibold text-foreground mb-2">Admin Comment</h4>
+                              {editingCommentId === report.id ? (
+                                <div className="space-y-2">
+                                  <Textarea
+                                    value={commentDraft}
+                                    onChange={(e) => setCommentDraft(e.target.value)}
+                                    placeholder="How was this issue fixed? Add notes here..."
+                                    className="min-h-[80px]"
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button size="sm" onClick={() => saveAdminComment(report.id)}>
+                                      Save Comment
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => { setEditingCommentId(null); setCommentDraft(''); }}>
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  {report.admin_comment ? (
+                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border text-sm text-foreground">
+                                      {report.admin_comment}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground italic">No admin comment yet</p>
+                                  )}
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="mt-2"
+                                    onClick={() => { setEditingCommentId(report.id); setCommentDraft(report.admin_comment || ''); }}
+                                  >
+                                    {report.admin_comment ? 'Edit Comment' : 'Add Comment'}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                             <div className="flex gap-4 text-xs text-muted-foreground">
                               <span>Created: {formatDate(report.created_at)}</span>
                               <span>Updated: {formatDate(report.updated_at)}</span>

@@ -1,11 +1,23 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lightbulb, CheckCircle2, ChevronDown, ChevronUp, Image } from 'lucide-react';
+import { Lightbulb, CheckCircle2, ChevronDown, ChevronUp, Image, Trash2, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface Suggestion {
   id: string;
@@ -17,6 +29,8 @@ interface Suggestion {
   accepted: boolean | null;
   created_at: string | null;
   updated_at: string | null;
+  admin_comment: string | null;
+  is_read: boolean;
 }
 
 export default function SuggestionsList() {
@@ -24,6 +38,8 @@ export default function SuggestionsList() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted'>('all');
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState('');
 
   useEffect(() => {
     fetchSuggestions();
@@ -38,7 +54,7 @@ export default function SuggestionsList() {
     if (error) {
       console.error('Error fetching suggestions:', error);
     } else {
-      setSuggestions(data || []);
+      setSuggestions((data as unknown as Suggestion[]) || []);
     }
     setLoading(false);
   }
@@ -46,7 +62,7 @@ export default function SuggestionsList() {
   async function toggleAccepted(id: string, currentStatus: boolean | null) {
     const { error } = await supabase
       .from('user_suggestions')
-      .update({ accepted: !currentStatus })
+      .update({ accepted: !currentStatus } as never)
       .eq('id', id);
 
     if (error) {
@@ -54,6 +70,49 @@ export default function SuggestionsList() {
     } else {
       setSuggestions(prev => prev.map(s => s.id === id ? { ...s, accepted: !currentStatus } : s));
       toast({ title: 'Updated', description: `Suggestion ${!currentStatus ? 'accepted' : 'unmarked'}` });
+    }
+  }
+
+  async function deleteSuggestion(id: string) {
+    const { error } = await supabase
+      .from('user_suggestions')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to delete suggestion', variant: 'destructive' });
+    } else {
+      setSuggestions(prev => prev.filter(s => s.id !== id));
+      toast({ title: 'Deleted', description: 'Suggestion removed' });
+    }
+  }
+
+  async function markAsRead(id: string) {
+    const { error } = await supabase
+      .from('user_suggestions')
+      .update({ is_read: true } as never)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error marking as read:', error);
+    } else {
+      setSuggestions(prev => prev.map(s => s.id === id ? { ...s, is_read: true } : s));
+    }
+  }
+
+  async function saveAdminComment(id: string) {
+    const { error } = await supabase
+      .from('user_suggestions')
+      .update({ admin_comment: commentDraft } as never)
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: 'Error', description: 'Failed to save comment', variant: 'destructive' });
+    } else {
+      setSuggestions(prev => prev.map(s => s.id === id ? { ...s, admin_comment: commentDraft } : s));
+      setEditingCommentId(null);
+      setCommentDraft('');
+      toast({ title: 'Saved', description: 'Admin comment updated' });
     }
   }
 
@@ -127,11 +186,23 @@ export default function SuggestionsList() {
               ) : (
                 filtered.map(suggestion => (
                   <>
-                    <TableRow key={suggestion.id} className="cursor-pointer" onClick={() => setExpandedId(expandedId === suggestion.id ? null : suggestion.id)}>
+                    <TableRow 
+                      key={suggestion.id} 
+                      className="cursor-pointer" 
+                      onClick={() => {
+                        setExpandedId(expandedId === suggestion.id ? null : suggestion.id);
+                        if (!suggestion.is_read) markAsRead(suggestion.id);
+                      }}
+                    >
                       <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {suggestion.area || 'General'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {!suggestion.is_read && (
+                            <Circle className="h-2.5 w-2.5 fill-blue-500 text-blue-500" />
+                          )}
+                          <Badge variant="outline" className="capitalize">
+                            {suggestion.area || 'General'}
+                          </Badge>
+                        </div>
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         {suggestion.description || 'No description'}
@@ -161,6 +232,35 @@ export default function SuggestionsList() {
                             <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                             {suggestion.accepted ? 'Unmark' : 'Accept'}
                           </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Suggestion?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete this suggestion. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-500 hover:bg-red-600"
+                                  onClick={() => deleteSuggestion(suggestion.id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                           {expandedId === suggestion.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </div>
                       </TableCell>
@@ -190,6 +290,46 @@ export default function SuggestionsList() {
                                 </div>
                               </div>
                             )}
+                            {/* Admin Comment Section */}
+                            <div className="border-t pt-4">
+                              <h4 className="text-sm font-semibold text-foreground mb-2">Admin Comment</h4>
+                              {editingCommentId === suggestion.id ? (
+                                <div className="space-y-2">
+                                  <Textarea
+                                    value={commentDraft}
+                                    onChange={(e) => setCommentDraft(e.target.value)}
+                                    placeholder="Add notes about this suggestion..."
+                                    className="min-h-[80px]"
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button size="sm" onClick={() => saveAdminComment(suggestion.id)}>
+                                      Save Comment
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={() => { setEditingCommentId(null); setCommentDraft(''); }}>
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  {suggestion.admin_comment ? (
+                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border text-sm text-foreground">
+                                      {suggestion.admin_comment}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground italic">No admin comment yet</p>
+                                  )}
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="mt-2"
+                                    onClick={() => { setEditingCommentId(suggestion.id); setCommentDraft(suggestion.admin_comment || ''); }}
+                                  >
+                                    {suggestion.admin_comment ? 'Edit Comment' : 'Add Comment'}
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                             <div className="flex gap-4 text-xs text-muted-foreground">
                               <span>Created: {formatDate(suggestion.created_at)}</span>
                               <span>Updated: {formatDate(suggestion.updated_at)}</span>
