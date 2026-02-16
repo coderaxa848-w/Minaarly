@@ -430,57 +430,6 @@ export type Database = {
         }
         Relationships: []
       }
-      masjid_salah_uploads: {
-        Row: {
-          created_at: string
-          file_fingerprint: string | null
-          file_name: string
-          file_path: string
-          file_type: string
-          id: string
-          masjid_id: string
-          masjid_name: string | null
-          month: number | null
-          parser_error: string | null
-          status: string
-          updated_at: string
-          uploaded_by: string | null
-          year: number | null
-        }
-        Insert: {
-          created_at?: string
-          file_fingerprint?: string | null
-          file_name: string
-          file_path: string
-          file_type: string
-          id?: string
-          masjid_id: string
-          masjid_name?: string | null
-          month?: number | null
-          parser_error?: string | null
-          status?: string
-          updated_at?: string
-          uploaded_by?: string | null
-          year?: number | null
-        }
-        Update: {
-          created_at?: string
-          file_fingerprint?: string | null
-          file_name?: string
-          file_path?: string
-          file_type?: string
-          id?: string
-          masjid_id?: string
-          masjid_name?: string | null
-          month?: number | null
-          parser_error?: string | null
-          status?: string
-          updated_at?: string
-          uploaded_by?: string | null
-          year?: number | null
-        }
-        Relationships: []
-      }
       mosque_admins: {
         Row: {
           claimant_email: string | null

@@ -83,6 +83,8 @@ export default function MosqueDashboard() {
   const [extractedData, setExtractedData] = useState<any>(null);
   const [extractedWarnings, setExtractedWarnings] = useState<string[]>([]);
   const [existingMonths, setExistingMonths] = useState<Array<{ month: number; year: number; id: string }>>([]);
+  const [viewingMonthData, setViewingMonthData] = useState<any>(null);
+  const [viewingMonthLabel, setViewingMonthLabel] = useState('');
 
   useEffect(() => {
     if (adminLoading) return;
@@ -130,7 +132,28 @@ export default function MosqueDashboard() {
       .eq('masjid_id', mosqueId)
       .order('year', { ascending: false })
       .order('month', { ascending: false });
-    setExistingMonths((data as any) || []);
+    const months = (data as any) || [];
+    setExistingMonths(months);
+
+    // Auto-load current month if available
+    const now = new Date();
+    const currentMonth = months.find((m: any) => m.month === now.getMonth() + 1 && m.year === now.getFullYear());
+    if (currentMonth) {
+      loadMonthData(currentMonth.id, currentMonth.month, currentMonth.year);
+    } else if (months.length > 0) {
+      loadMonthData(months[0].id, months[0].month, months[0].year);
+    }
+  }
+
+  async function loadMonthData(id: string, month: number, year: number) {
+    const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    setViewingMonthLabel(`${monthNames[month]} ${year}`);
+    const { data } = await supabase
+      .from('masjid_salah_times_monthly' as any)
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    setViewingMonthData(data);
   }
 
   async function handleExtract() {
@@ -485,7 +508,24 @@ export default function MosqueDashboard() {
                     <CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Today's Prayer Times</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {iqamah ? (
+                    {viewingMonthData ? (() => {
+                      const todayStr = new Date().toISOString().slice(0, 10);
+                      const todayData = viewingMonthData.monthly_times?.days?.find((d: any) => d.date === todayStr);
+                      if (!todayData) return <p className="text-sm text-muted-foreground">No data for today in {viewingMonthLabel}. <button className="text-primary underline" onClick={() => setActiveTab('prayer')}>Upload</button></p>;
+                      return (
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                          {['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].map(prayer => {
+                            const p = todayData.prayers?.find((pr: any) => pr.prayer === prayer);
+                            return (
+                              <div key={prayer} className="flex justify-between py-0.5">
+                                <span className="capitalize text-muted-foreground">{prayer}</span>
+                                <span className="font-medium text-foreground">{p?.iqamah || p?.adhan || '—'}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })() : iqamah ? (
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                         {['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].map(p => (
                           <div key={p} className="flex justify-between py-0.5">
@@ -612,28 +652,102 @@ export default function MosqueDashboard() {
           {/* Prayer Times Tab */}
           <TabsContent value="prayer">
             <div className="space-y-6">
-              {/* Quick Iqamah Times */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Iqamah Times</CardTitle>
-                  <CardDescription>Set today's iqamah times manually.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Switch checked={iqamahForm.use_api_times ?? true} onCheckedChange={v => setIqamahForm(f => ({ ...f, use_api_times: v }))} />
-                    <Label>Use API-calculated times</Label>
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    {['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jummah'].map(prayer => (
-                      <div key={prayer}>
-                        <Label className="capitalize">{prayer}</Label>
-                        <Input type="time" value={(iqamahForm as any)[prayer] || ''} onChange={e => setIqamahForm(f => ({ ...f, [prayer]: e.target.value }))} />
+              {/* Monthly Prayer Times Viewer */}
+              {existingMonths.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5 text-primary" /> Monthly Prayer Times</CardTitle>
+                        <CardDescription>Viewing saved timetable for your mosque.</CardDescription>
                       </div>
-                    ))}
-                  </div>
-                  <Button onClick={savePrayerTimes} disabled={saving}><Save className="h-4 w-4 mr-2" />{saving ? 'Saving...' : 'Save Prayer Times'}</Button>
-                </CardContent>
-              </Card>
+                      {/* Month Selector */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {existingMonths.map(m => {
+                          const monthShort = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                          const isActive = viewingMonthLabel === `${['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m.month]} ${m.year}`;
+                          return (
+                            <Badge
+                              key={m.id}
+                              variant={isActive ? 'default' : 'outline'}
+                              className="cursor-pointer"
+                              onClick={() => loadMonthData(m.id, m.month, m.year)}
+                            >
+                              {monthShort[m.month]} {m.year}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {viewingMonthData ? (
+                      <>
+                        <h3 className="text-lg font-semibold text-foreground mb-4">{viewingMonthLabel}</h3>
+                        <div className="overflow-x-auto border rounded-lg">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-20 sticky left-0 bg-background z-10">Date</TableHead>
+                                <TableHead className="w-12">Day</TableHead>
+                                <TableHead className="text-center">Fajr</TableHead>
+                                <TableHead className="text-center">Sunrise</TableHead>
+                                <TableHead className="text-center">Dhuhr</TableHead>
+                                <TableHead className="text-center">Asr</TableHead>
+                                <TableHead className="text-center">Maghrib</TableHead>
+                                <TableHead className="text-center">Isha</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {viewingMonthData.monthly_times?.days?.map((day: any, di: number) => {
+                                const isFriday = day.day?.toLowerCase() === 'friday';
+                                const isToday = day.date === new Date().toISOString().slice(0, 10);
+                                return (
+                                  <TableRow key={di} className={`${isToday ? 'bg-primary/10 font-semibold' : ''} ${isFriday ? 'bg-accent/30' : ''}`}>
+                                    <TableCell className="font-mono text-xs sticky left-0 bg-inherit z-10">{day.date?.slice(5)}</TableCell>
+                                    <TableCell className="text-xs capitalize">{day.day?.slice(0, 3)}</TableCell>
+                                    {['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'].map(prayer => {
+                                      const p = day.prayers?.find((pr: any) => pr.prayer === prayer);
+                                      return (
+                                        <TableCell key={prayer} className="text-center p-1.5">
+                                          <div className="text-xs font-mono">
+                                            {p?.adhan && <div className="text-muted-foreground">{p.adhan}</div>}
+                                            {p?.iqamah && prayer !== 'sunrise' && (
+                                              <div className="font-semibold text-foreground">{p.iqamah}</div>
+                                            )}
+                                            {!p?.adhan && !p?.iqamah && <span className="text-muted-foreground/50">—</span>}
+                                          </div>
+                                        </TableCell>
+                                      );
+                                    })}
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                        {/* Legend */}
+                        <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary/10 inline-block" /> Today</span>
+                          <span>Top = Adhan · <span className="font-semibold text-foreground">Bottom = Iqamah</span></span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-4 text-center">Loading timetable...</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {existingMonths.length === 0 && (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <Clock className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No monthly timetables uploaded yet.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Upload a prayer timetable image below to get started.</p>
+                  </CardContent>
+                </Card>
+              )}
 
               <Separator />
 
@@ -801,11 +915,12 @@ export default function MosqueDashboard() {
                 </CardContent>
               </Card>
 
-              {/* Existing Months */}
+              {/* Manage Uploaded Months */}
               {existingMonths.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-base">Uploaded Months</CardTitle>
+                    <CardTitle className="text-base">Manage Uploaded Months</CardTitle>
+                    <CardDescription>Delete a month's timetable if needed.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
