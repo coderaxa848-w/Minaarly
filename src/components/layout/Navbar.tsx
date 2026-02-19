@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { Menu, X, MapPin, Sun, Moon, User, LogOut, Shield, CalendarPlus, Building } from 'lucide-react';
+import { Menu, X, MapPin, Sun, Moon, User, LogOut, Shield, CalendarPlus, Building, Heart, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -8,6 +8,8 @@ import { useTheme } from '@/components/theme-provider';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { useMosqueAdminCheck } from '@/hooks/useMosqueAdminCheck';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,15 +22,22 @@ const navLinks = [
   { name: 'Home', path: '/' },
   { name: 'About Us', path: '/about' },
   { name: 'Contact Us', path: '/contact' },
+  { name: 'Support Us', path: '/support' },
 ];
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isOrganiser, setIsOrganiser] = useState(false);
   const location = useLocation();
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminCheck();
   const { isMosqueAdmin } = useMosqueAdminCheck();
+
+  useEffect(() => {
+    if (!user) { setIsOrganiser(false); return; }
+    supabase.rpc('is_event_organizer', { _user_id: user.id }).then(({ data }) => setIsOrganiser(!!data));
+  }, [user]);
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -116,6 +125,14 @@ export function Navbar() {
                     <Link to="/mosque-dashboard">
                       <Building className="h-4 w-4 mr-2" />
                       My Mosque
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {isOrganiser && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/organiser-dashboard">
+                      <UsersRound className="h-4 w-4 mr-2" />
+                      My Organisation
                     </Link>
                   </DropdownMenuItem>
                 )}
@@ -208,6 +225,14 @@ export function Navbar() {
                       <Button variant="outline" className="w-full justify-start">
                         <Building className="h-4 w-4 mr-2" />
                         My Mosque
+                      </Button>
+                    </Link>
+                  )}
+                  {isOrganiser && (
+                    <Link to="/organiser-dashboard" onClick={() => setIsOpen(false)}>
+                      <Button variant="outline" className="w-full justify-start">
+                        <UsersRound className="h-4 w-4 mr-2" />
+                        My Organisation
                       </Button>
                     </Link>
                   )}
