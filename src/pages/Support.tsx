@@ -250,7 +250,7 @@ export default function Support() {
                           type="number"
                           min="1"
                           step="1"
-                          placeholder="£"
+                          placeholder=""
                           value={customAmount}
                           onChange={(e) => setCustomAmount(e.target.value)}
                           className="pl-8 h-12 md:h-14 text-lg md:text-xl font-semibold bg-white dark:bg-slate-800 border-amber-200 dark:border-amber-800/50 focus:border-amber-500 focus:ring-amber-500"
