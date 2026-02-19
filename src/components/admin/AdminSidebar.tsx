@@ -14,7 +14,9 @@ import {
   Upload,
   UserCheck,
   Bug,
-  Lightbulb
+  Lightbulb,
+  Clock,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +24,8 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { name: 'Dashboard', path: '/admin', icon: LayoutDashboard, color: 'from-violet-500 to-purple-600' },
   { name: 'Mosques', path: '/admin/mosques', icon: Building2, color: 'from-emerald-500 to-teal-600' },
+  { name: 'Mosque Submissions', path: '/admin/mosque-submissions', icon: FileText, color: 'from-teal-500 to-emerald-600' },
+  { name: 'Prayer Time Submissions', path: '/admin/prayer-time-submissions', icon: Clock, color: 'from-blue-500 to-indigo-600' },
   { name: 'Claims', path: '/admin/claims', icon: ClipboardList, color: 'from-amber-500 to-orange-600' },
   { name: 'Users', path: '/admin/users', icon: Users, color: 'from-blue-500 to-cyan-600' },
   { name: 'Events', path: '/admin/events', icon: Calendar, color: 'from-rose-500 to-pink-600' },

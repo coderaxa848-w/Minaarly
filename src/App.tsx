@@ -14,7 +14,7 @@ import Auth from "./pages/Auth";
 import MosqueDetail from "./pages/MosqueDetail";
 import NotFound from "./pages/NotFound";
 import { AdminRoute, AdminLayout } from "@/components/admin";
-import { AdminDashboard, MosquesList, MosqueForm, ClaimsList, UsersList, EventsList, ImportMosques, CommunityEventsList, BugReportsList, SuggestionsList } from "@/pages/admin";
+import { AdminDashboard, MosquesList, MosqueForm, ClaimsList, UsersList, EventsList, ImportMosques, CommunityEventsList, BugReportsList, SuggestionsList, PrayerTimeSubmissions, MosqueSubmissions } from "@/pages/admin";
 import SubmitEvent from "@/pages/SubmitEvent";
 import BecomeOrganiser from "@/pages/BecomeOrganiser";
 import OrganiserDashboard from "@/pages/OrganiserDashboard";
@@ -58,6 +58,8 @@ const App = () => (
                 <Route path="organisers" element={<OrganisersList />} />
                 <Route path="bug-reports" element={<BugReportsList />} />
                 <Route path="suggestions" element={<SuggestionsList />} />
+                <Route path="prayer-time-submissions" element={<PrayerTimeSubmissions />} />
+                <Route path="mosque-submissions" element={<MosqueSubmissions />} />
               </Route>
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

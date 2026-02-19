@@ -8,3 +8,5 @@ export { default as ImportMosques } from './ImportMosques';
 export { default as CommunityEventsList } from './CommunityEventsList';
 export { default as BugReportsList } from './BugReportsList';
 export { default as SuggestionsList } from './SuggestionsList';
+export { default as PrayerTimeSubmissions } from './PrayerTimeSubmissions';
+export { default as MosqueSubmissions } from './MosqueSubmissions';
