@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, MapPin, CheckCircle2, Loader2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { addWeeks, addMonths, format, parseISO } from 'date-fns';
 
 const CATEGORIES = [
   { value: 'halaqa', label: 'Halaqa' },
@@ -31,6 +33,30 @@ const AUDIENCE_OPTIONS = [
   { value: 'sisters_only', label: 'Sisters Only' },
 ];
 
+const REPEAT_PATTERNS = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Every 2 weeks' },
+  { value: 'monthly_same_day', label: 'Monthly (same day)' },
+  { value: 'custom', label: 'Custom dates' },
+];
+
+function computeUpcomingDates(startDate: string, pattern: string, interval: number, until: string): string[] {
+  if (!startDate || !until) return [];
+  const dates: string[] = [];
+  let current = parseISO(startDate);
+  const end = parseISO(until);
+  let count = 0;
+  while (current <= end && count < 52) {
+    dates.push(format(current, 'yyyy-MM-dd'));
+    if (pattern === 'weekly') current = addWeeks(current, interval);
+    else if (pattern === 'biweekly') current = addWeeks(current, 2);
+    else if (pattern === 'monthly_same_day') current = addMonths(current, 1);
+    else break;
+    count++;
+  }
+  return dates;
+}
+
 export default function SubmitEvent() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -39,6 +65,10 @@ export default function SubmitEvent() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isAtMosque, setIsAtMosque] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [repeatPattern, setRepeatPattern] = useState('weekly');
+  const [repeatInterval, setRepeatInterval] = useState(1);
+  const [recurringUntil, setRecurringUntil] = useState('');
   const [mosqueSearch, setMosqueSearch] = useState('');
   const [mosqueResults, setMosqueResults] = useState<{ id: string; name: string; address: string }[]>([]);
   const [searchingMosques, setSearchingMosques] = useState(false);
@@ -61,6 +91,11 @@ export default function SubmitEvent() {
     custom_location: '',
     postcode: '',
   });
+
+  const upcomingDates = useMemo(() => {
+    if (!isRecurring || repeatPattern === 'custom') return [];
+    return computeUpcomingDates(form.event_date, repeatPattern, repeatInterval, recurringUntil);
+  }, [isRecurring, repeatPattern, repeatInterval, recurringUntil, form.event_date]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -158,6 +193,10 @@ export default function SubmitEvent() {
         submitted_by: user.id,
         source: isOrganiser ? 'community_organiser' : 'user',
         status: isOrganiser ? 'approved' : 'pending',
+        is_recurring: isRecurring,
+        recurrence_pattern: isRecurring ? repeatPattern : null,
+        recurrence_interval: isRecurring && repeatPattern === 'weekly' ? repeatInterval : null,
+        recurring_until: isRecurring && recurringUntil ? recurringUntil : null,
       } as any);
       if (error) throw error;
 
@@ -293,6 +332,101 @@ export default function SubmitEvent() {
               <div>
                 <Label htmlFor="end_time">End Time</Label>
                 <Input id="end_time" type="time" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Recurring toggle */}
+            <div className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-colors ${isRecurring ? 'border-primary bg-primary/5' : 'border-border'}`}>
+              <RefreshCw className={`h-5 w-5 mt-0.5 ${isRecurring ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Recurring event?</p>
+                    <p className="text-sm text-muted-foreground">Repeat this event on multiple dates</p>
+                  </div>
+                  <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+                </div>
+
+                {isRecurring && (
+                  <div className="mt-4 space-y-4">
+                    {/* Pattern */}
+                    <div>
+                      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 block">Repeat Pattern</Label>
+                      <div className="space-y-2">
+                        {REPEAT_PATTERNS.map(p => (
+                          <button
+                            key={p.value}
+                            type="button"
+                            onClick={() => setRepeatPattern(p.value)}
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${repeatPattern === p.value ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/50'}`}
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            {p.label}
+                            {repeatPattern === p.value && <span className="ml-auto">✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Frequency (only for weekly) */}
+                    {repeatPattern === 'weekly' && (
+                      <div>
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 block">Frequency</Label>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4].map(w => (
+                            <button
+                              key={w}
+                              type="button"
+                              onClick={() => setRepeatInterval(w)}
+                              className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-colors ${repeatInterval === w ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:border-primary/50'}`}
+                            >
+                              {w}w
+                            </button>
+                          ))}
+                        </div>
+                        {form.event_date && (
+                          <p className="text-sm text-primary mt-2">
+                            Every {repeatInterval > 1 ? `${repeatInterval} weeks` : 'week'} on {new Date(form.event_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long' })}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* End date */}
+                    {repeatPattern !== 'custom' && (
+                      <div>
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 block">End Date *</Label>
+                        <Input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)} min={form.event_date} />
+                      </div>
+                    )}
+
+                    {/* Upcoming dates preview */}
+                    {upcomingDates.length > 0 && (
+                      <div className="p-4 bg-primary/5 rounded-xl border border-primary/20">
+                        <p className="text-sm font-semibold text-primary mb-3">
+                          <Calendar className="inline h-4 w-4 mr-1" />
+                          Upcoming Dates — {upcomingDates.length} total
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {upcomingDates.slice(0, 6).map(d => {
+                            const date = new Date(d + 'T00:00:00');
+                            return (
+                              <div key={d} className="text-center bg-background border border-border rounded-lg px-3 py-2">
+                                <p className="text-base font-bold">{date.getDate()}</p>
+                                <p className="text-xs text-muted-foreground">{date.toLocaleString('en-GB', { month: 'short' })}</p>
+                              </div>
+                            );
+                          })}
+                          {upcomingDates.length > 6 && (
+                            <div className="text-center bg-muted rounded-lg px-3 py-2 flex items-center">
+                              <p className="text-sm text-muted-foreground">+{upcomingDates.length - 6} more</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Support from "./pages/Support";
 
 import Auth from "./pages/Auth";
 import MosqueDetail from "./pages/MosqueDetail";
@@ -16,6 +17,7 @@ import { AdminRoute, AdminLayout } from "@/components/admin";
 import { AdminDashboard, MosquesList, MosqueForm, ClaimsList, UsersList, EventsList, ImportMosques, CommunityEventsList, BugReportsList, SuggestionsList } from "@/pages/admin";
 import SubmitEvent from "@/pages/SubmitEvent";
 import BecomeOrganiser from "@/pages/BecomeOrganiser";
+import OrganiserDashboard from "@/pages/OrganiserDashboard";
 import OrganisersList from "@/pages/admin/OrganisersList";
 import MosqueDashboard from "@/pages/MosqueDashboard";
 
@@ -35,8 +37,10 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               
               <Route path="/auth" element={<Auth />} />
+              <Route path="/support" element={<Support />} />
               <Route path="/submit-event" element={<SubmitEvent />} />
               <Route path="/become-organiser" element={<BecomeOrganiser />} />
+              <Route path="/organiser-dashboard" element={<OrganiserDashboard />} />
               <Route path="/mosque-dashboard" element={<MosqueDashboard />} />
               <Route path="/mosque/:slug" element={<MosqueDetail />} />
               
