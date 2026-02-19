@@ -136,6 +136,7 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          org_picture_url: string | null
           org_type: string
           social_instagram: string | null
           social_twitter: string | null
@@ -150,6 +151,7 @@ export type Database = {
           created_at?: string
           display_name: string
           id?: string
+          org_picture_url?: string | null
           org_type?: string
           social_instagram?: string | null
           social_twitter?: string | null
@@ -164,6 +166,7 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          org_picture_url?: string | null
           org_type?: string
           social_instagram?: string | null
           social_twitter?: string | null
@@ -197,6 +200,10 @@ export type Database = {
           organizer_name: string | null
           organizer_phone: string | null
           postcode: string | null
+          recurrence_custom_dates: string[] | null
+          recurrence_interval: number | null
+          recurrence_pattern: string | null
+          recurring_until: string | null
           source: string | null
           speaker: string | null
           start_time: string
@@ -227,6 +234,10 @@ export type Database = {
           organizer_name?: string | null
           organizer_phone?: string | null
           postcode?: string | null
+          recurrence_custom_dates?: string[] | null
+          recurrence_interval?: number | null
+          recurrence_pattern?: string | null
+          recurring_until?: string | null
           source?: string | null
           speaker?: string | null
           start_time: string
@@ -257,6 +268,10 @@ export type Database = {
           organizer_name?: string | null
           organizer_phone?: string | null
           postcode?: string | null
+          recurrence_custom_dates?: string[] | null
+          recurrence_interval?: number | null
+          recurrence_pattern?: string | null
+          recurring_until?: string | null
           source?: string | null
           speaker?: string | null
           start_time?: string
@@ -324,10 +339,12 @@ export type Database = {
       }
       issue_report_form: {
         Row: {
+          admin_comment: string | null
           category: string | null
           created_at: string
           description: string | null
           id: string
+          is_read: boolean | null
           metadata: Json | null
           mosque_id: string | null
           mosque_name: string | null
@@ -339,10 +356,12 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          admin_comment?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_read?: boolean | null
           metadata?: Json | null
           mosque_id?: string | null
           mosque_name?: string | null
@@ -354,10 +373,12 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          admin_comment?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_read?: boolean | null
           metadata?: Json | null
           mosque_id?: string | null
           mosque_name?: string | null
@@ -833,20 +854,76 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_dismissals: {
+        Row: {
+          created_at: string
+          id: string
+          notification_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notification_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notification_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_dismissals_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          link: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          link?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          link?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           email: string | null
           full_name: string | null
           id: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
           id: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           full_name?: string | null
@@ -997,10 +1074,12 @@ export type Database = {
       user_suggestions: {
         Row: {
           accepted: boolean | null
+          admin_comment: string | null
           area: string | null
           created_at: string | null
           description: string | null
           id: string
+          is_read: boolean | null
           picture_1: string | null
           picture_2: string | null
           updated_at: string | null
@@ -1009,10 +1088,12 @@ export type Database = {
         }
         Insert: {
           accepted?: boolean | null
+          admin_comment?: string | null
           area?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_read?: boolean | null
           picture_1?: string | null
           picture_2?: string | null
           updated_at?: string | null
@@ -1021,10 +1102,12 @@ export type Database = {
         }
         Update: {
           accepted?: boolean | null
+          admin_comment?: string | null
           area?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_read?: boolean | null
           picture_1?: string | null
           picture_2?: string | null
           updated_at?: string | null
