@@ -418,6 +418,7 @@ export type Database = {
           monthly_times: Json
           source: string
           special_dates: Json | null
+          status: boolean | null
           updated_at: string
           year: number
         }
@@ -432,6 +433,7 @@ export type Database = {
           monthly_times: Json
           source?: string
           special_dates?: Json | null
+          status?: boolean | null
           updated_at?: string
           year: number
         }
@@ -446,6 +448,7 @@ export type Database = {
           monthly_times?: Json
           source?: string
           special_dates?: Json | null
+          status?: boolean | null
           updated_at?: string
           year?: number
         }

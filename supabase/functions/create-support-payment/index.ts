@@ -18,7 +18,7 @@ serve(async (req) => {
   );
 
   try {
-    const { priceId } = await req.json();
+    const { priceId, customAmount } = await req.json();
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -39,9 +39,31 @@ serve(async (req) => {
       }
     }
 
+    // Build line item: either a fixed price ID or a custom amount
+    let lineItem: Stripe.Checkout.SessionCreateParams.LineItem;
+
+    if (customAmount && typeof customAmount === "number" && customAmount >= 100) {
+      // Custom amount in pence
+      lineItem = {
+        price_data: {
+          currency: "gbp",
+          product_data: {
+            name: "Support Minaarly",
+            description: "Custom donation to support the Minaarly platform",
+          },
+          unit_amount: customAmount,
+        },
+        quantity: 1,
+      };
+    } else if (priceId) {
+      lineItem = { price: priceId, quantity: 1 };
+    } else {
+      throw new Error("Either priceId or customAmount (in pence, min 100) must be provided");
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [lineItem],
       mode: "payment",
       success_url: `${req.headers.get("origin")}/support?success=true`,
       cancel_url: `${req.headers.get("origin")}/support`,
