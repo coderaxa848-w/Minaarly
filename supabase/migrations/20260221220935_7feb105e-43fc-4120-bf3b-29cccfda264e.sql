@@ -1,0 +1,1 @@
+UPDATE public.mosques SET iftar_facilities = NULL;
