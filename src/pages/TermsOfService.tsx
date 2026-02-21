@@ -10,7 +10,7 @@ These terms apply to all visitors, users, and others who access or use the Servi
   },
   {
     title: '2. Description of Service',
-    content: `Minaarly is an online platform that connects Muslims with local mosques across the United Kingdom. The Service provides information about mosque locations, prayer times, community events, and allows mosque administrators to manage their mosque profiles.`,
+    content: `Minaarly is an online platform that connects users with local mosques across the United Kingdom. The Service provides information about mosque locations, prayer times, community events, and allows mosque administrators to manage their mosque profiles.`,
   },
   {
     title: '3. User Accounts',
@@ -35,14 +35,20 @@ You must notify us immediately of any unauthorised use of your account.`,
     title: '5. Mosque Listings & Content',
     content: `Mosque administrators who claim and manage their mosque profile are responsible for the accuracy and completeness of the information they provide. Minaarly reserves the right to remove or edit any content that violates these Terms or is otherwise inappropriate.
 
-Users who submit mosque information or event details warrant that such information is accurate and that they have the right to submit it.`,
+Users who submit mosque information or event details warrant that such information is accurate and that they have the right to submit it.
+
+By submitting content to Minaarly, you grant us a non-exclusive, royalty-free licence to use, display, and distribute that content as part of the Service.`,
   },
   {
     title: '6. Intellectual Property',
     content: `The Service and its original content, features, and functionality are and will remain the exclusive property of Minaarly. Our trademarks and trade dress may not be used in connection with any product or service without the prior written consent of Minaarly.`,
   },
   {
-    title: '7. Disclaimers',
+    title: '7. Payments',
+    content: `Some aspects of the Service may be supported through optional user payments. Payments are processed by third-party payment providers (such as Stripe). Minaarly does not store payment card details and is not responsible for payment processing errors.`,
+  },
+  {
+    title: '8. Disclaimers',
     content: `The Service is provided on an "AS IS" and "AS AVAILABLE" basis without any warranties of any kind. Minaarly does not warrant that:
 • The Service will be uninterrupted or error-free
 • Prayer times and mosque information will always be accurate or up to date
@@ -51,23 +57,27 @@ Users who submit mosque information or event details warrant that such informati
 Prayer times are provided for convenience and should not replace consultation with your local mosque.`,
   },
   {
-    title: '8. Limitation of Liability',
+    title: '9. Limitation of Liability',
     content: `To the maximum extent permitted by law, Minaarly shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of, or inability to use, the Service.`,
   },
   {
-    title: '9. Privacy',
+    title: '10. Privacy',
     content: `Your use of the Service is also governed by our Privacy Policy, which is incorporated into these Terms by reference. Please review our Privacy Policy to understand our practices.`,
   },
   {
-    title: '10. Changes to Terms',
+    title: '11. Termination',
+    content: `We reserve the right to suspend or terminate accounts that violate these Terms or misuse the Service, without prior notice.`,
+  },
+  {
+    title: '12. Changes to Terms',
     content: `We reserve the right to modify these Terms at any time. We will notify users of significant changes by updating the date at the top of this page. Your continued use of the Service after any changes constitutes your acceptance of the new Terms.`,
   },
   {
-    title: '11. Governing Law',
+    title: '13. Governing Law',
     content: `These Terms shall be governed and construed in accordance with the laws of England and Wales, without regard to its conflict of law provisions.`,
   },
   {
-    title: '12. Contact Us',
+    title: '14. Contact Us',
     content: `If you have any questions about these Terms of Service, please contact us at:
 
 Email: hello@minaarly.com
