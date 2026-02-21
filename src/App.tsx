@@ -20,6 +20,8 @@ import BecomeOrganiser from "@/pages/BecomeOrganiser";
 import OrganiserDashboard from "@/pages/OrganiserDashboard";
 import OrganisersList from "@/pages/admin/OrganisersList";
 import MosqueDashboard from "@/pages/MosqueDashboard";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,8 @@ const App = () => (
               <Route path="/organiser-dashboard" element={<OrganiserDashboard />} />
               <Route path="/mosque-dashboard" element={<MosqueDashboard />} />
               <Route path="/mosque/:slug" element={<MosqueDetail />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>

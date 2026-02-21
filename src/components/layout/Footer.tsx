@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Mail, Phone } from 'lucide-react';
+import { MapPin, Mail } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -24,16 +24,6 @@ export function Footer() {
             <h4 className="font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link to="/map" className="hover:text-primary transition-colors">
-                  Explore Mosques
-                </Link>
-              </li>
-              <li>
-                <Link to="/events" className="hover:text-primary transition-colors">
-                  Events
-                </Link>
-              </li>
-              <li>
                 <Link to="/about" className="hover:text-primary transition-colors">
                   About Us
                 </Link>
@@ -42,26 +32,6 @@ export function Footer() {
                 <Link to="/contact" className="hover:text-primary transition-colors">
                   Contact
                 </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* For Mosques */}
-          <div>
-            <h4 className="font-semibold mb-4">For Mosques</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link to="/admin" className="hover:text-primary transition-colors">
-                  Claim Your Mosque
-                </Link>
-              </li>
-              <li>
-                <Link to="/admin" className="hover:text-primary transition-colors">
-                  Admin Dashboard
-                </Link>
-              </li>
-              <li>
-                <span className="text-muted-foreground/60">Partnership</span>
               </li>
             </ul>
           </div>
@@ -76,10 +46,6 @@ export function Footer() {
                   hello@minaarly.com
                 </a>
               </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                <span>(555) 123-4567</span>
-              </li>
             </ul>
           </div>
         </div>
@@ -89,10 +55,10 @@ export function Footer() {
             © {new Date().getFullYear()} Minaarly. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground">
-            <Link to="#" className="hover:text-primary transition-colors">
+            <Link to="/privacy-policy" className="hover:text-primary transition-colors">
               Privacy Policy
             </Link>
-            <Link to="#" className="hover:text-primary transition-colors">
+            <Link to="/terms-of-service" className="hover:text-primary transition-colors">
               Terms of Service
             </Link>
           </div>
