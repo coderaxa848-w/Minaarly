@@ -18,26 +18,45 @@ We also automatically collect certain information when you use Minaarly, includi
 • Monitor and analyse usage and trends to improve your experience`,
   },
   {
-    title: '3. Information Sharing',
+    title: '3. Lawful Basis for Processing',
+    content: `For users in the United Kingdom and European Economic Area, we process personal data where:
+• It is necessary to provide our services
+• You have given consent
+• We have a legitimate interest in operating and improving Minaarly
+• We are required to comply with legal obligations`,
+  },
+  {
+    title: '4. Payments',
+    content: `Minaarly offers optional payments to support the platform. All payments are processed by Stripe, a third-party payment processor. We do not store your card details on our servers. Stripe's handling of your payment information is governed by their own privacy policy.
+
+These payments are voluntary contributions to support the running and development of the platform and are not religious donations or charitable contributions.`,
+  },
+  {
+    title: '5. Information Sharing',
     content: `We do not share your personal information with third parties except as described in this policy. We may share your information with:
 • Service providers who assist us in operating our platform
+• Payment processors (such as Stripe) to process optional payments
 • Law enforcement or other parties when required by law
 • Other parties with your consent
 
 We do not sell your personal information to any third party.`,
   },
   {
-    title: '4. Data Security',
+    title: '6. Data Retention',
+    content: `We retain personal information only for as long as necessary to fulfil the purposes outlined in this policy, unless a longer retention period is required by law. When your data is no longer needed, we will securely delete or anonymise it.`,
+  },
+  {
+    title: '7. Data Security',
     content: `We take reasonable measures to help protect your personal information from loss, theft, misuse, unauthorised access, disclosure, alteration, and destruction. Your data is stored securely using industry-standard encryption.`,
   },
   {
-    title: '5. Cookies',
+    title: '8. Cookies',
     content: `We use cookies and similar tracking technologies to track activity on our platform and hold certain information. Cookies are files with a small amount of data that are sent to your browser from a website and stored on your device.
 
 You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent. However, if you do not accept cookies, some portions of our service may not function correctly.`,
   },
   {
-    title: '6. Your Rights',
+    title: '9. Your Rights',
     content: `Depending on your location, you may have certain rights regarding your personal information, including:
 • The right to access the personal information we hold about you
 • The right to request correction of inaccurate data
@@ -47,15 +66,15 @@ You can instruct your browser to refuse all cookies or to indicate when a cookie
 To exercise any of these rights, please contact us at hello@minaarly.com.`,
   },
   {
-    title: '7. Children\'s Privacy',
+    title: '10. Children\'s Privacy',
     content: `Minaarly is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. If you become aware that a child has provided us with personal information, please contact us.`,
   },
   {
-    title: '8. Changes to This Policy',
+    title: '11. Changes to This Policy',
     content: `We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page with an updated effective date. We encourage you to review this policy periodically.`,
   },
   {
-    title: '9. Contact Us',
+    title: '12. Contact Us',
     content: `If you have any questions about this Privacy Policy, please contact us at:
 
 Email: hello@minaarly.com
