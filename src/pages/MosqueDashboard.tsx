@@ -97,7 +97,7 @@ export default function MosqueDashboard() {
 
   useEffect(() => {
     if (mosque) {
-      setRamadanEnabled(!!(mosque.tarawih_rakah || mosque.tarawih_type || mosque.qiyamul_layl));
+      setRamadanEnabled(!!(mosque.tarawih_rakah || mosque.tarawih_type || mosque.qiyamul_layl || mosque.iftar_facilities));
     }
   }, [mosque]);
 
@@ -276,9 +276,11 @@ export default function MosqueDashboard() {
       established: editForm.established || null,
       capacity: editForm.capacity || null,
       mosque_donation_link: editForm.mosque_donation_link || null,
+      services: editForm.services || [],
       tarawih_rakah: ramadanEnabled ? (editForm.tarawih_rakah || null) : null,
       tarawih_type: ramadanEnabled ? (editForm.tarawih_type || null) : null,
       qiyamul_layl: ramadanEnabled ? (editForm.qiyamul_layl || null) : null,
+      iftar_facilities: ramadanEnabled ? (editForm.iftar_facilities || null) : null,
     }).eq('id', mosqueId);
     setSaving(false);
     if (error) {
@@ -595,7 +597,7 @@ export default function MosqueDashboard() {
                     <Switch checked={ramadanEnabled} onCheckedChange={setRamadanEnabled} />
                   </div>
                   {ramadanEnabled && (
-                    <div className="grid gap-4 md:grid-cols-3 p-4 rounded-lg border bg-muted/30">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-4 rounded-lg border bg-muted/30">
                       <div>
                         <Label>Tarawih Rakah</Label>
                         <select
@@ -636,14 +638,125 @@ export default function MosqueDashboard() {
                           <option value="no">No</option>
                         </select>
                       </div>
+                      <div>
+                        <Label>Iftar Facilities</Label>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={editForm.iftar_facilities || ''}
+                          onChange={e => setEditForm(f => ({ ...f, iftar_facilities: e.target.value }))}
+                        >
+                          <option value="">Select...</option>
+                          <option value="daily">Daily Iftar</option>
+                          <option value="weekends">Weekends Only</option>
+                          <option value="last_10">Last 10 Nights</option>
+                          <option value="fridays">Fridays Only</option>
+                          <option value="no">Not Available</option>
+                        </select>
+                      </div>
                     </div>
                   )}
                 </div>
 
                 <Separator />
 
-                <div><Label>Facilities (comma-separated)</Label><Input value={(editForm.facilities || []).join(', ')} onChange={e => setEditForm(f => ({ ...f, facilities: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))} placeholder="e.g. Parking, Wudu Area, Library" /></div>
-                <div><Label>Languages (comma-separated)</Label><Input value={(editForm.languages || []).join(', ')} onChange={e => setEditForm(f => ({ ...f, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))} placeholder="e.g. English, Arabic, Urdu" /></div>
+                {/* Facilities */}
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Facilities</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {['parking', 'wheelchair_access', 'wudu_facilities', 'womens_area', 'funeral_services', 'marriage_services', 'quran_classes', 'islamic_school', 'library', 'community_hall', 'youth_activities', 'sisters_circle'].map((facility) => (
+                      <label
+                        key={facility}
+                        className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          (editForm.facilities || []).includes(facility) ? 'bg-primary/10 border-primary' : 'hover:bg-accent'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(editForm.facilities || []).includes(facility)}
+                          onChange={() => {
+                            const current = editForm.facilities || [];
+                            setEditForm(f => ({
+                              ...f,
+                              facilities: current.includes(facility) ? current.filter(i => i !== facility) : [...current, facility]
+                            }));
+                          }}
+                          className="sr-only"
+                        />
+                        <span className="text-sm capitalize">{facility.replace(/_/g, ' ')}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Languages */}
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Languages</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {['English', 'Arabic', 'Urdu', 'Bengali', 'Somali', 'Turkish', 'Gujarati', 'Punjabi'].map((language) => (
+                      <label
+                        key={language}
+                        className={`px-4 py-2 rounded-full border cursor-pointer transition-colors ${
+                          (editForm.languages || []).includes(language) ? 'bg-primary text-primary-foreground border-primary' : 'hover:bg-accent'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(editForm.languages || []).includes(language)}
+                          onChange={() => {
+                            const current = editForm.languages || [];
+                            setEditForm(f => ({
+                              ...f,
+                              languages: current.includes(language) ? current.filter(i => i !== language) : [...current, language]
+                            }));
+                          }}
+                          className="sr-only"
+                        />
+                        {language}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Services */}
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Services Offered</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {[
+                      { code: 'nikkah', label: 'Nikkah (Islamic Marriage)' },
+                      { code: 'hall_booking', label: 'Hall/Venue Booking' },
+                      { code: 'immigration_advice', label: 'Immigration Advice' },
+                      { code: 'counselling', label: 'Counselling Services' },
+                      { code: 'funeral', label: 'Funeral Services' },
+                      { code: 'zakat_collection', label: 'Zakat Collection' },
+                      { code: 'food_bank', label: 'Food Bank' },
+                    ].map((service) => (
+                      <label
+                        key={service.code}
+                        className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          (editForm.services || []).includes(service.code) ? 'bg-primary/10 border-primary' : 'hover:bg-accent'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(editForm.services || []).includes(service.code)}
+                          onChange={() => {
+                            const current = editForm.services || [];
+                            setEditForm(f => ({
+                              ...f,
+                              services: current.includes(service.code) ? current.filter(i => i !== service.code) : [...current, service.code]
+                            }));
+                          }}
+                          className="sr-only"
+                        />
+                        <span className="text-sm">{service.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
                 <Button onClick={saveDetails} disabled={saving}><Save className="h-4 w-4 mr-2" />{saving ? 'Saving...' : 'Save Details'}</Button>
               </CardContent>
             </Card>
